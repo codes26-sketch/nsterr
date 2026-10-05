@@ -23,12 +23,12 @@ export const handler = endpoint(async event => {
   const seedFlags = seedNames.map(name => Boolean(process.env[name]));
   if (seedFlags.some(Boolean) && !seedFlags.every(Boolean)) throw new HttpError(503, 'Initial account environment settings are incomplete.', 'INCOMPLETE_INITIAL_ACCOUNTS');
   const seeded = seedFlags.every(Boolean);
-  const displayName = seeded ? (process.env.NSTER_INITIAL_OWNER_NAME || 'Main Owner') : body.displayName;
+  const displayName = seeded ? (process.env.NSTER_INITIAL_OWNER_NAME || 'Main owner') : body.displayName;
   const ownerPassword = seeded ? process.env.NSTER_INITIAL_OWNER_PASSWORD : body.ownerPassword;
   const visitorPassword = seeded ? process.env.NSTER_INITIAL_VISITOR_PASSWORD : body.visitorPassword;
   const uploaderUsername = seeded ? process.env.NSTER_INITIAL_UPLOADER_USERNAME : '';
   const uploaderPassword = seeded ? process.env.NSTER_INITIAL_UPLOADER_PASSWORD : '';
-  const uploaderDisplayName = seeded ? (process.env.NSTER_INITIAL_UPLOADER_DISPLAY_NAME || 'Content Owner') : '';
+  const uploaderDisplayName = seeded ? (process.env.NSTER_INITIAL_UPLOADER_DISPLAY_NAME || 'Question uploader') : '';
   if (typeof displayName !== 'string' || displayName.trim().length < 1 || displayName.trim().length > 60) throw new HttpError(400, 'Enter an owner name of up to 60 characters.', 'INVALID_OWNER_NAME');
   if (typeof ownerPassword !== 'string' || ownerPassword.length < 8 || ownerPassword.length > 100) throw new HttpError(400, 'Use a main owner password with at least 8 characters.', 'WEAK_OWNER_PASSWORD');
   if (typeof visitorPassword !== 'string' || visitorPassword.length < 5 || visitorPassword.length > 100) throw new HttpError(400, 'Use a visitor password with at least 5 characters.', 'WEAK_VISITOR_PASSWORD');
