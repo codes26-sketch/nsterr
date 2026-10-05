@@ -21,3 +21,5 @@ export const handler = endpoint(async event => {
     'Set-Cookie': [sessionCookie('nster_owner', token), clearCookie('nster_visitor')]
   });
 });
+
+export default handler;

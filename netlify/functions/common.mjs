@@ -13,13 +13,32 @@ export class HttpError extends Error {
 }
 
 export function endpoint(handler) {
-  return async event => {
-    try { return await handler(event); }
-    catch (error) {
-      if (error instanceof HttpError) return json(error.statusCode, { error: error.message, code: error.code }, error.headers || {});
-      console.error('NSTER function error');
-      return json(500, { error: 'NSTER could not complete that request. Please try again.', code: 'SERVER_ERROR' });
+  return async request => {
+    const isWebRequest = request instanceof Request;
+    let result;
+    try {
+      const event = isWebRequest ? {
+        httpMethod: request.method,
+        headers: Object.fromEntries(request.headers),
+        queryStringParameters: Object.fromEntries(new URL(request.url).searchParams),
+        body: await request.text(),
+        isBase64Encoded: false
+      } : request;
+      result = await handler(event);
     }
+    catch (error) {
+      if (error instanceof HttpError) result = json(error.statusCode, { error: error.message, code: error.code }, error.headers || {});
+      else {
+        console.error('NSTER function error');
+        result = json(500, { error: 'NSTER could not complete that request. Please try again.', code: 'SERVER_ERROR' });
+      }
+    }
+    if (!isWebRequest) return result;
+    const headers = new Headers(result.headers);
+    for (const [name, values] of Object.entries(result.multiValueHeaders || {})) {
+      for (const value of values) headers.append(name, value);
+    }
+    return new Response(result.body, { status: result.statusCode, headers });
   };
 }
 
@@ -156,11 +175,15 @@ export function makeSession(role, subject = '', version = 0) {
 }
 
 function cookie(event, name) {
-  const raw = event.headers?.cookie || event.headers?.Cookie || '';
-  for (const chunk of raw.split(';')) {
-    const split = chunk.trim().indexOf('=');
+  // Browsers may send several Cookie headers over HTTP/2, which arrive joined with commas.
+  const header = event.headers?.cookie || event.headers?.Cookie || '';
+  const raw = [header, ...(event.multiValueHeaders?.cookie || event.multiValueHeaders?.Cookie || [])].join(';');
+  for (const part of raw.split(/[;,]/)) {
+    const chunk = part.trim();
+    const split = chunk.indexOf('=');
     if (split < 0) continue;
-    if (chunk.slice(0, split).trim() === name) return chunk.slice(split + 1).trim();
+    const value = chunk.slice(split + 1).trim();
+    if (chunk.slice(0, split).trim() === name && value) return value;
   }
   return '';
 }

@@ -13,3 +13,5 @@ export const handler = endpoint(async event => {
   const token = makeSession('visitor', '', settings.visitor_version);
   return json(200, { ok: true }, { 'Set-Cookie': [sessionCookie('nster_visitor', token), clearCookie('nster_owner')] });
 });
+
+export default handler;

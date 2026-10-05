@@ -28,12 +28,20 @@
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     const data = await response.json().catch(() => ({}));
-    if (response.status === 401 && retry && owner && path !== '/api/owner-auth') {
-      await signOutOwner(false);
-      throw new ApiError(401, 'Your owner session ended. Please sign in again.');
+    if (response.status === 401 && data.code === 'OWNER_SESSION_REQUIRED' && retry && owner) {
+      showGate();
+      openLoginDialog();
+      throw new ApiError(401, 'Your owner session ended. Please sign in again.', data.code);
     }
     if (!response.ok) throw new ApiError(response.status, data.error || 'NSTER could not complete that request.', data.code);
     return data;
+  }
+  async function confirmOwnerSession(expectedOwner) {
+    const session = await api('/api/session', { retry: false });
+    if (!session.owner || session.owner.id !== expectedOwner.id || session.owner.role !== expectedOwner.role) {
+      throw new ApiError(401, 'Your browser did not keep the owner sign-in. Open NSTER directly in a browser tab and allow cookies for this site, then sign in again.', 'OWNER_COOKIE_REQUIRED');
+    }
+    owner = session.owner;
   }
   function showToast(message) {
     const element = $('#toast'); element.textContent = message; element.hidden = false;
@@ -79,6 +87,7 @@
   function closeDialog() { $('#dialogRoot').innerHTML = ''; }
   function closeIcon() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>'; }
   async function openOwnerAccess() {
+    if (owner) { await loadOwnerWorkspace(); return; }
     try {
       const status = await api('/api/status'); setupComplete = status.setupComplete; initialCredentialsConfigured = Boolean(status.initialCredentialsConfigured); updateGate();
     } catch (_) { /* The dialog still explains setup; its request will show an actionable error. */ }
@@ -102,7 +111,9 @@
           setupKey: $('#setupKey').value,
           ...(initialCredentialsConfigured ? {} : { displayName: $('#setupDisplayName').value.trim(), ownerPassword: $('#setupOwnerPass').value, visitorPassword: $('#setupVisitorPass').value })
         }});
-        setupComplete = true; owner = result.owner; closeDialog(); updateGate(); await loadOwnerWorkspace(); showToast('Your NSTER owner account is ready.');
+        setupComplete = true; updateGate();
+        await confirmOwnerSession(result.owner);
+        closeDialog(); await loadOwnerWorkspace(); showToast('Your NSTER owner account is ready.');
       } catch (error) { setDialogError(error.message); button.disabled = false; }
     });
     $('#setupKey').focus();
@@ -124,7 +135,8 @@
           username: accountType === 'uploader' ? $('#loginUsername').value.trim() : '',
           password: $('#loginPassword').value
         }});
-        owner = result.owner; closeDialog(); await loadOwnerWorkspace();
+        await confirmOwnerSession(result.owner);
+        closeDialog(); await loadOwnerWorkspace();
       } catch (error) { setDialogError(error.message); button.disabled = false; }
     });
     $('#loginPassword').focus();
@@ -205,13 +217,13 @@
     const card = trigger.closest('.qa-card'); card.classList.toggle('open'); trigger.setAttribute('aria-expanded', card.classList.contains('open'));
   });
   $('#questionForm').addEventListener('submit', async event => {
-    event.preventDefault(); const button = $('#questionSubmit'); button.disabled = true;
+    event.preventDefault(); const form = event.currentTarget; const button = $('#questionSubmit'); button.disabled = true;
     try {
       await api('/api/questions', { method: 'POST', body: {
         question: $('#questionInput').value.trim(), answer: $('#answerInput').value.trim(),
         language: $('#codeLanguage').value.trim(), code: $('#codeInput').value.trim()
       }});
-      event.currentTarget.reset(); showToast('Your question is published on NSTER.');
+      form.reset(); showToast('Your question is published on NSTER.');
       if (owner?.role === 'main') await loadAdminQuestions();
     } catch (error) { showToast(error.message); }
     finally { button.disabled = false; }
@@ -223,18 +235,18 @@
     catch (error) { button.disabled = false; showToast(error.message); }
   });
   $('#visitorPasswordForm').addEventListener('submit', async event => {
-    event.preventDefault(); const button = event.currentTarget.querySelector('button'); button.disabled = true;
-    try { await api('/api/settings', { method: 'PATCH', body: { visitorPassword: $('#newVisitorPassword').value } }); event.currentTarget.reset(); showToast('Visitor password updated.'); }
+    event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button'); button.disabled = true;
+    try { await api('/api/settings', { method: 'PATCH', body: { visitorPassword: $('#newVisitorPassword').value } }); form.reset(); showToast('Visitor password updated.'); }
     catch (error) { showToast(error.message); }
     finally { button.disabled = false; }
   });
   $('#contributorForm').addEventListener('submit', async event => {
-    event.preventDefault(); const button = event.currentTarget.querySelector('button'); button.disabled = true;
+    event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button'); button.disabled = true;
     try {
       await api('/api/contributors', { method: 'POST', body: {
         username: $('#contributorName').value.trim(), displayName: $('#contributorDisplayName').value.trim(), password: $('#contributorPassword').value
       }});
-      event.currentTarget.reset(); await loadContributors(); showToast('Question uploader account created.');
+      form.reset(); await loadContributors(); showToast('Question uploader account created.');
     } catch (error) { showToast(error.message); }
     finally { button.disabled = false; }
   });

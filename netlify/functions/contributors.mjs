@@ -36,3 +36,5 @@ export const handler = endpoint(async event => {
   }
   method(event, ['GET', 'POST', 'DELETE']);
 });
+
+export default handler;

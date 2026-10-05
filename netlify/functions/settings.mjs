@@ -14,3 +14,5 @@ export const handler = endpoint(async event => {
   });
   return json(200, { ok: true });
 });
+
+export default handler;
