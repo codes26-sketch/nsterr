@@ -7,3 +7,5 @@ export const handler = endpoint(async event => {
   if (await readVisitorSession(event)) return json(200, { role: 'visitor' });
   return json(200, { role: 'none' });
 });
+
+export default handler;
