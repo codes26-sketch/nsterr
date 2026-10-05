@@ -56,4 +56,3 @@ The static page alone is not a working site because `/api/*` routes are Netlify 
 - Passwords are salted and hashed on the server. The Supabase secret key, setup key, and session signing secret must stay in server-side environment variables.
 - Login attempts are rate-limited by a keyed hash of the request IP. The raw IP is not stored in the database.
 - Theme preference is saved in the visitor's browser. Accounts and Q&A are shared through Supabase.
-
