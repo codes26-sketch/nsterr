@@ -20,6 +20,9 @@
   let savingQuestion = false;
   let dialogPreviousFocus = null;
   let searchTimer;
+  let pendingImport = [];
+  let preparingImport = false;
+  let uploadingQuestions = false;
 
   const loadingCards = '<div class="loading-cards" role="status" aria-label="Loading questions"><div></div><div></div><div></div></div>';
 
@@ -70,6 +73,7 @@
   }
   function showGate() {
     resetQuestionEditor();
+    pendingImport = []; $('#questionFile').value = ''; $('#importPreview').hidden = true; $('#importHint').textContent = ''; $('#importQuestions').disabled = true; $('#importQuestions').textContent = 'Upload all questions';
     owner = null; visitorSession = false; hideMainViews(); $('#visitorGate').hidden = false;
     $('#visitorPassword').value = ''; $('#gateHint').textContent = ''; $('#gateHint').classList.remove('error');
     $('#questionSearch').value = ''; updateGate(); window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -166,6 +170,7 @@
     hideMainViews(); $('#ownerWorkspace').hidden = false;
     $('#ownerNameLine').textContent = owner.displayName;
     const isMain = owner.role === 'main';
+    $('#importIncluded').hidden = !isMain;
     $('#ownerRoleLine').textContent = isMain ? 'Main owner · full access' : 'Question uploader · publish & edit';
     $('#workspaceTitle').textContent = isMain ? 'Your NSTER, your way.' : 'Share what you know.';
     $('#workspaceCopy').textContent = isMain ? 'Import questions, refine your answers, and manage your private library.' : 'Publish helpful answers and edit your own uploads for NSTER visitors.';
@@ -287,21 +292,72 @@
     finally { button.disabled = false; savingQuestion = false; $('#cancelEdit').disabled = false; button.textContent = editingId ? 'Save changes' : 'Publish question'; }
   });
   $('#cancelEdit').addEventListener('click', () => { if (!savingQuestion) resetQuestionEditor(); });
-  $('#importQuestions').addEventListener('click', () => { if (!savingQuestion) $('#questionFile').click(); });
+  function importRecords(data) {
+    const records = Array.isArray(data) ? data : data?.questions || data?.practicals;
+    if (!Array.isArray(records) || !records.length) throw new Error('Use a JSON array, or an object containing a questions or practicals array.');
+    records.forEach((row, index) => {
+      if (!row || typeof row.question !== 'string' || row.question.trim().length < 3 || row.question.trim().length > 160 || typeof row.answer !== 'string' || row.answer.trim().length < 2 || row.answer.trim().length > 4000) throw new Error(`Question ${index + 1} needs a title of 3–160 characters and an answer of 2–4,000 characters.`);
+      if (typeof row.code === 'string' && row.code.length > 3000) throw new Error(`Question ${index + 1} has code longer than 3,000 characters.`);
+      if (typeof row.language === 'string' && row.language.trim().length > 24) throw new Error(`Question ${index + 1} has a language name longer than 24 characters.`);
+      if (typeof row.filename === 'string' && row.filename.trim().length > 128) throw new Error(`Question ${index + 1} has a filename longer than 128 characters.`);
+    });
+    return records;
+  }
   $('#questionFile').addEventListener('change', async event => {
-    const file = event.target.files[0]; if (!file) return;
+    const files = [...event.target.files];
     const button = $('#importQuestions'); const hint = $('#importHint');
-    button.disabled = true; button.textContent = 'Importing…'; hint.textContent = ''; hint.classList.remove('error');
+    pendingImport = []; preparingImport = true; button.disabled = true; button.textContent = 'Reading files…'; hint.textContent = ''; hint.classList.remove('error');
+    $('#importPreview').hidden = true;
+    if (!files.length) { preparingImport = false; button.textContent = 'Upload all questions'; return; }
+    event.target.disabled = true;
     try {
-      if (file.size > 1_000_000) throw new Error('Choose a JSON file smaller than 1 MB.');
-      let data;
-      try { data = JSON.parse(await file.text()); } catch (_) { throw new Error('This file is not valid JSON. Check its format and try again.'); }
-      const result = await api('/api/questions', { method: 'POST', body: { action: 'import', data } });
-      hint.textContent = `${result.imported} ${result.imported === 1 ? 'question' : 'questions'} imported.${result.skipped ? ` ${result.skipped} duplicate ${result.skipped === 1 ? 'question' : 'questions'} skipped.` : ''}`;
+      if (files.reduce((total, file) => total + file.size, 0) > 1_000_000) throw new Error('Choose JSON files smaller than 1 MB in total.');
+      const preview = [];
+      for (const file of files) {
+        let data;
+        try { data = JSON.parse(await file.text()); } catch { throw new Error(`${file.name} is not valid JSON. Check its format and try again.`); }
+        let records;
+        try { records = importRecords(data); } catch (error) { throw new Error(`${file.name}: ${error.message}`); }
+        pendingImport.push(...records);
+        preview.push(`<li><span>${escapeHtml(file.name)}</span><strong>${records.length} ${records.length === 1 ? 'question' : 'questions'}</strong></li>`);
+      }
+      if (pendingImport.length > 300) throw new Error('Upload no more than 300 questions at a time. Split larger files into smaller batches.');
+      const payload = { action: 'import', data: pendingImport };
+      if (JSON.stringify(payload).length > 1_000_000) throw new Error('The upload is too large. Select fewer questions and try again.');
+      $('#importPreview').innerHTML = `<h3>${pendingImport.length} ${pendingImport.length === 1 ? 'question' : 'questions'} ready to upload</h3><ul>${preview.join('')}</ul><p class="form-note">First question: ${escapeHtml(pendingImport[0].question)}</p>`;
+      $('#importPreview').hidden = false;
+      button.textContent = `Upload ${pendingImport.length} ${pendingImport.length === 1 ? 'question' : 'questions'}`;
+      button.disabled = false;
+    } catch (error) { pendingImport = []; button.textContent = 'Upload all questions'; hint.textContent = error.message; hint.classList.add('error'); }
+    finally { preparingImport = false; event.target.disabled = false; }
+  });
+  function importMessage(result) {
+    return `${result.imported} ${result.imported === 1 ? 'question' : 'questions'} uploaded.${result.skipped ? ` ${result.skipped} already imported ${result.skipped === 1 ? 'question' : 'questions'} skipped.` : ''}`;
+  }
+  $('#importQuestions').addEventListener('click', async () => {
+    if (!pendingImport.length || preparingImport || uploadingQuestions || savingQuestion) return;
+    const button = $('#importQuestions'); const hint = $('#importHint');
+    uploadingQuestions = true; button.disabled = true; button.textContent = 'Uploading questions…'; $('#questionFile').disabled = true; $('#importIncluded').disabled = true;
+    hint.textContent = ''; hint.classList.remove('error');
+    try {
+      const result = await api('/api/questions', { method: 'POST', body: { action: 'import', data: pendingImport } });
+      hint.textContent = importMessage(result);
+      pendingImport = []; $('#questionFile').value = ''; $('#importPreview').hidden = true;
       if (owner) await loadAdminQuestions();
-      showToast('Import complete. Use Edit to refine any uploaded answer.');
+      showToast('Upload complete. Your answers are saved and ready to edit.');
     } catch (error) { hint.textContent = error.message; hint.classList.add('error'); }
-    finally { button.disabled = false; button.textContent = 'Import JSON'; event.target.value = ''; }
+    finally { uploadingQuestions = false; button.disabled = !pendingImport.length; button.textContent = pendingImport.length ? `Upload ${pendingImport.length} questions` : 'Upload all questions'; $('#questionFile').disabled = false; $('#importIncluded').disabled = false; }
+  });
+  $('#importIncluded').addEventListener('click', async () => {
+    if (uploadingQuestions || preparingImport || savingQuestion || owner?.role !== 'main') return;
+    const button = $('#importIncluded'); const hint = $('#importHint');
+    uploadingQuestions = true; button.disabled = true; $('#questionFile').disabled = true; $('#importQuestions').disabled = true; button.textContent = 'Loading Java practicals…'; hint.textContent = ''; hint.classList.remove('error');
+    try {
+      const result = await api('/api/questions', { method: 'POST', body: { action: 'import-repository' } });
+      hint.textContent = result.imported ? importMessage(result) : 'The 35 included Java practicals have already been imported. Saved edits and deletions are preserved.';
+      if (owner) await loadAdminQuestions();
+    } catch (error) { hint.textContent = error.message; hint.classList.add('error'); }
+    finally { uploadingQuestions = false; button.disabled = false; button.textContent = 'Load included Java practicals (35)'; $('#questionFile').disabled = false; $('#importQuestions').disabled = !pendingImport.length; }
   });
   $('#adminQaList').addEventListener('click', async event => {
     if (savingQuestion) return;

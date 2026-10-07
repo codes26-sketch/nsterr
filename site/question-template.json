@@ -1,0 +1,15 @@
+{
+  "questions": [
+    {
+      "question": "What is constructor overloading?",
+      "answer": "Constructor overloading defines multiple constructors with different parameter lists in the same class.",
+      "language": "Java",
+      "filename": "Box.java",
+      "code": "class Box {\n    Box() {}\n    Box(int size) {}\n}"
+    },
+    {
+      "question": "What is a Java interface?",
+      "answer": "An interface defines a contract that implementing classes provide."
+    }
+  ]
+}

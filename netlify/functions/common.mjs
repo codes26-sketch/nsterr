@@ -28,6 +28,12 @@ export function endpoint(handler) {
     }
     catch (error) {
       if (error instanceof HttpError) result = json(error.statusCode, { error: error.message, code: error.code }, error.headers || {});
+      else if ((error.code || error.cause?.code) === '42501') {
+        result = json(503, { error: 'Question storage cannot save changes because the database connection is read-only. Check the Netlify Database runtime permissions.', code: 'DATABASE_READ_ONLY' });
+      }
+      else if ((error.code || error.cause?.code) === '42P01') {
+        result = json(503, { error: 'Question storage is not initialized yet. Complete the Netlify deployment to apply its database migrations.', code: 'DATABASE_NOT_INITIALIZED' });
+      }
       else {
         console.error('NSTER function error');
         result = json(500, { error: 'NSTER could not complete that request. Please try again.', code: 'SERVER_ERROR' });

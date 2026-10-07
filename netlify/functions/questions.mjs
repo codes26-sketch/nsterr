@@ -28,8 +28,9 @@ export const handler = endpoint(async event => {
   if (event.httpMethod === 'GET') {
     const account = await requireQuestionsRead(event);
     const db = getDb();
-    await importExistingQuestions(db, supabase);
     await importRepositoryQuestions(db);
+    try { await importExistingQuestions(db, supabase); }
+    catch { console.warn('NSTER legacy import is pending; serving the saved question library.'); }
     const condition = account.role === 'uploader' ? and(isNull(questions.deleted_at), eq(questions.created_by, account.id)) : isNull(questions.deleted_at);
     const rows = await db.select(fields).from(questions).where(condition).orderBy(desc(questions.created_at), questions.id);
     return json(200, { questions: rows });
@@ -39,13 +40,23 @@ export const handler = endpoint(async event => {
     const account = await requireOwner(event, ['main', 'uploader']);
     const body = readBody(event, 1_000_000);
     const db = getDb();
+    if (body.action === 'import-repository') {
+      if (account.role !== 'main') throw new HttpError(403, 'Only the main owner can import the included library.', 'OWNER_PERMISSION_DENIED');
+      return json(200, await importRepositoryQuestions(db));
+    }
     if (body.action === 'import') {
-      const rows = validated(() => questionRecords(body.data).map(validateQuestion)).map(row => ({
-        ...row, created_by: account.id,
-        source_key: `upload:${account.id}:${createHash('sha256').update(JSON.stringify(row)).digest('hex')}`
-      }));
-      const inserted = await db.insert(questions).values(rows).onConflictDoNothing({ target: questions.source_key }).returning({ id: questions.id });
-      return json(201, { imported: inserted.length, skipped: rows.length - inserted.length });
+      const records = validated(() => questionRecords(body.data).map(validateQuestion));
+      const fingerprint = row => createHash('sha256').update(JSON.stringify(validateQuestion(row))).digest('hex');
+      const existing = await db.select(fields).from(questions).where(isNull(questions.deleted_at));
+      const known = new Set(existing.map(fingerprint));
+      const rows = records.flatMap(row => {
+        const key = fingerprint(row);
+        if (known.has(key)) return [];
+        known.add(key);
+        return [{ ...row, created_by: account.id, source_key: `upload:${account.id}:${key}` }];
+      });
+      const inserted = rows.length ? await db.insert(questions).values(rows).onConflictDoNothing({ target: questions.source_key }).returning({ id: questions.id }) : [];
+      return json(201, { imported: inserted.length, skipped: records.length - inserted.length });
     }
     const row = validated(() => validateQuestion(body));
     const [question] = await db.insert(questions).values({ ...row, created_by: account.id }).returning(fields);

@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f6f7ee">
   <meta name="description" content="NSTER — a calm, password-protected home for useful answers.">
   <title>NSTER</title>
-  <link rel="stylesheet" href="/styles.css?v=question-library-3">
-  <script src="/app.js?v=question-library-3" defer></script>
+  <link rel="stylesheet" href="/styles.css?v=bulk-upload-4">
+  <script src="/app.js?v=bulk-upload-4" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -47,9 +47,16 @@
       <div class="owner-workspace">
         <div class="owner-bar"><div class="owner-id"><span class="owner-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span><span id="ownerNameLine">Owner workspace</span><small id="ownerRoleLine">Main owner</small></span></div><button class="subtle-btn" id="ownerLogout" type="button">Sign out</button></div>
         <div class="eyebrow">NSTER · OWNER SPACE</div><h1 class="workspace-title" id="workspaceTitle">Your NSTER, your way.</h1><p class="workspace-copy" id="workspaceCopy">Add helpful answers, keep the visitor password current, and invite a question uploader.</p>
-        <section class="owner-card" id="questionFormCard"><h2 id="questionFormTitle">Add a question and answer</h2><p id="questionFormCopy">Share a clear answer. Add a code example when it helps.</p>
-          <div class="import-panel"><div><h3>Have a JSON file?</h3><p>Import an array, or a file with a <code>practicals</code> or <code>questions</code> list. Up to 300 questions, 1 MB.</p></div><button class="subtle-btn" id="importQuestions" type="button">Import JSON</button><input class="sr-only" id="questionFile" type="file" accept=".json,application/json" tabindex="-1" aria-label="Choose a question JSON file"></div>
+        <section class="owner-card bulk-import-card" id="bulkImportCard">
+          <div class="eyebrow">BULK UPLOAD</div><h2>Upload questions from JSON</h2><p>Add multiple questions and answers together. Choose one or more JSON files, review the preview, then upload them all.</p>
+          <label for="questionFile">Choose JSON files</label><input class="field json-file-input" id="questionFile" type="file" accept=".json,application/json" multiple aria-describedby="importFormat">
+          <p class="form-note" id="importFormat">Accepts an array, or a <code>questions</code> / <code>practicals</code> list. Up to 300 questions and 1 MB total. Answers, code, and filenames stay together.</p>
+          <div class="import-preview" id="importPreview" hidden></div>
+          <div class="bulk-import-actions"><button class="primary-btn" id="importQuestions" type="button" disabled>Upload all questions</button><a class="subtle-btn template-link" href="/question-template.json" download>Download JSON example</a></div>
+          <button class="subtle-btn included-import-btn" id="importIncluded" type="button">Load included Java practicals (35)</button>
           <p class="hint" id="importHint" role="status"></p>
+        </section>
+        <section class="owner-card" id="questionFormCard"><h2 id="questionFormTitle">Add a question and answer</h2><p id="questionFormCopy">Share a clear answer. Add a code example when it helps.</p>
           <form class="owner-form" id="questionForm">
             <div><label for="questionInput">Question</label><input class="field" id="questionInput" minlength="3" maxlength="160" placeholder="e.g. Where can I find the setup guide?" required></div>
             <div><label for="answerInput">Answer</label><textarea class="field" id="answerInput" minlength="2" maxlength="4000" placeholder="Write a clear, helpful answer…" required></textarea></div>
