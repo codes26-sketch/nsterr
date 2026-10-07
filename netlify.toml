@@ -9,6 +9,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  included_files = ["java_practicals_1_to_35.json"]
 
 [[redirects]]
   from = "/api/status"

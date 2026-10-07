@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f6f7ee">
   <meta name="description" content="NSTER — a calm, password-protected home for useful answers.">
   <title>NSTER</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js?v=owner-session-2" defer></script>
+  <link rel="stylesheet" href="/styles.css?v=question-library-3">
+  <script src="/app.js?v=question-library-3" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -39,7 +39,8 @@
       <div class="welcome-row"><div><div class="eyebrow">Welcome to NSTER</div><h1>What would you like <span>to know?</span></h1><p>Choose a question to reveal its answer. Code is ready to copy.</p></div>
         <label class="search"><span class="sr-only">Search questions</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input class="field" id="questionSearch" type="search" placeholder="Find a question"></label>
       </div>
-      <div class="qa-list" id="visitorQaList"></div>
+      <p class="library-summary" id="questionCount" role="status"></p>
+      <div class="qa-list" id="visitorQaList" aria-busy="false"></div>
     </main>
 
     <main class="content-view" id="ownerWorkspace" hidden>
@@ -47,16 +48,20 @@
         <div class="owner-bar"><div class="owner-id"><span class="owner-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span><span id="ownerNameLine">Owner workspace</span><small id="ownerRoleLine">Main owner</small></span></div><button class="subtle-btn" id="ownerLogout" type="button">Sign out</button></div>
         <div class="eyebrow">NSTER · OWNER SPACE</div><h1 class="workspace-title" id="workspaceTitle">Your NSTER, your way.</h1><p class="workspace-copy" id="workspaceCopy">Add helpful answers, keep the visitor password current, and invite a question uploader.</p>
         <section class="owner-card" id="questionFormCard"><h2 id="questionFormTitle">Add a question and answer</h2><p id="questionFormCopy">Share a clear answer. Add a code example when it helps.</p>
+          <div class="import-panel"><div><h3>Have a JSON file?</h3><p>Import an array, or a file with a <code>practicals</code> or <code>questions</code> list. Up to 300 questions, 1 MB.</p></div><button class="subtle-btn" id="importQuestions" type="button">Import JSON</button><input class="sr-only" id="questionFile" type="file" accept=".json,application/json" tabindex="-1" aria-label="Choose a question JSON file"></div>
+          <p class="hint" id="importHint" role="status"></p>
           <form class="owner-form" id="questionForm">
-            <div><label for="questionInput">Question</label><input class="field" id="questionInput" maxlength="160" placeholder="e.g. Where can I find the setup guide?" required></div>
-            <div><label for="answerInput">Answer</label><textarea class="field" id="answerInput" maxlength="4000" placeholder="Write a clear, helpful answer…" required></textarea></div>
+            <div><label for="questionInput">Question</label><input class="field" id="questionInput" minlength="3" maxlength="160" placeholder="e.g. Where can I find the setup guide?" required></div>
+            <div><label for="answerInput">Answer</label><textarea class="field" id="answerInput" minlength="2" maxlength="4000" placeholder="Write a clear, helpful answer…" required></textarea></div>
+            <div><label for="codeFilename">Filename <span class="optional">(optional)</span></label><input class="field" id="codeFilename" maxlength="128" placeholder="e.g. P1.java"></div>
             <div class="split-fields"><div><label for="codeLanguage">Code language <span class="optional">(optional)</span></label><input class="field" id="codeLanguage" maxlength="24" placeholder="JavaScript"></div><div><label for="codeInput">Code snippet <span class="optional">(optional)</span></label><textarea class="field code-input" id="codeInput" maxlength="3000" rows="5" placeholder="Paste code here"></textarea></div></div>
-            <button class="primary-btn" type="submit" id="questionSubmit">Publish question <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+            <div class="form-actions"><button class="primary-btn" type="submit" id="questionSubmit">Publish question <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="subtle-btn" type="button" id="cancelEdit" hidden>Cancel editing</button></div>
+            <p class="hint" id="questionFormHint" role="status"></p>
           </form>
-          <div class="existing-questions" id="existingQuestions"><h3>Questions on this page</h3><div class="admin-qa-list" id="adminQaList"></div></div>
+          <div class="existing-questions" id="existingQuestions"><div class="library-heading"><h3 id="adminQuestionsTitle">Questions on this page</h3><span class="count-badge" id="adminQuestionCount">0</span></div><div class="admin-qa-list" id="adminQaList" aria-busy="false"></div></div>
         </section>
         <section class="owner-card" id="accessSettings"><h2>Visitor password</h2><p>Share the new password with visitors after changing it.</p><form id="visitorPasswordForm" class="owner-form"><div><label for="newVisitorPassword">New visitor password</label><input class="field" id="newVisitorPassword" type="password" minlength="5" maxlength="100" placeholder="At least 5 characters" required></div><button class="primary-btn" type="submit">Update visitor password</button></form></section>
-        <section class="owner-card" id="contributorSettings"><h2>Invite a question uploader</h2><p>This account can publish new questions and answers. It cannot change access settings or remove content.</p><form id="contributorForm" class="owner-form"><div class="split-fields"><div><label for="contributorName">Username</label><input class="field" id="contributorName" minlength="3" maxlength="32" placeholder="e.g. sam" required></div><div><label for="contributorDisplayName">Display name</label><input class="field" id="contributorDisplayName" maxlength="60" placeholder="e.g. Sam" required></div></div><div><label for="contributorPassword">Account password</label><input class="field" id="contributorPassword" type="password" minlength="3" maxlength="100" placeholder="At least 3 characters" required></div><button class="primary-btn" type="submit">Create uploader account</button></form><div class="existing-questions"><h3>Uploader accounts</h3><div class="admin-qa-list" id="contributorList"></div></div></section>
+        <section class="owner-card" id="contributorSettings"><h2>Invite a question uploader</h2><p>This account can publish questions and edit its own uploads. It cannot change access settings or remove content.</p><form id="contributorForm" class="owner-form"><div class="split-fields"><div><label for="contributorName">Username</label><input class="field" id="contributorName" minlength="3" maxlength="32" placeholder="e.g. sam" required></div><div><label for="contributorDisplayName">Display name</label><input class="field" id="contributorDisplayName" maxlength="60" placeholder="e.g. Sam" required></div></div><div><label for="contributorPassword">Account password</label><input class="field" id="contributorPassword" type="password" minlength="3" maxlength="100" placeholder="At least 3 characters" required></div><button class="primary-btn" type="submit">Create uploader account</button></form><div class="existing-questions"><h3>Uploader accounts</h3><div class="admin-qa-list" id="contributorList"></div></div></section>
       </div>
     </main>
 

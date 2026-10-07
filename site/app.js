@@ -16,6 +16,12 @@
   let setupComplete = false;
   let initialCredentialsConfigured = false;
   let toastTimer;
+  let editingId = null;
+  let savingQuestion = false;
+  let dialogPreviousFocus = null;
+  let searchTimer;
+
+  const loadingCards = '<div class="loading-cards" role="status" aria-label="Loading questions"><div></div><div></div><div></div></div>';
 
   class ApiError extends Error {
     constructor(status, message, code) { super(message); this.status = status; this.code = code; }
@@ -48,10 +54,13 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => element.hidden = true, 2900);
   }
   function setTheme(theme) {
+    theme = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = theme;
     const dark = theme === 'dark';
     $('#themeToggle').innerHTML = dark ? icons.sun : icons.moon;
     $('#themeToggle').setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
+    $('#themeToggle').title = `Switch to ${dark ? 'light' : 'dark'} theme`;
+    $('meta[name="theme-color"]').content = dark ? '#000000' : '#f6f7ee';
     try { localStorage.setItem('nster-theme-v1', theme); } catch (_) {}
   }
   function hideMainViews() {
@@ -60,6 +69,7 @@
     $('#ownerWorkspace').hidden = true;
   }
   function showGate() {
+    resetQuestionEditor();
     owner = null; visitorSession = false; hideMainViews(); $('#visitorGate').hidden = false;
     $('#visitorPassword').value = ''; $('#gateHint').textContent = ''; $('#gateHint').classList.remove('error');
     $('#questionSearch').value = ''; updateGate(); window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -73,18 +83,24 @@
   }
   async function showVisitor() {
     owner = null; hideMainViews(); $('#visitorContent').hidden = false;
-    $('#visitorQaList').innerHTML = '<div class="empty-state">Loading answers…</div>';
+    $('#visitorQaList').innerHTML = loadingCards;
+    $('#visitorQaList').setAttribute('aria-busy', 'true');
+    $('#questionCount').textContent = '';
     try { questions = (await api('/api/questions')).questions; renderQuestions(); }
-    catch (error) { $('#visitorQaList').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
+    catch (error) { $('#visitorQaList').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}<br><button class="subtle-btn" type="button" data-retry-questions>Try again</button></div>`; }
+    finally { $('#visitorQaList').setAttribute('aria-busy', 'false'); }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function showDialog(title, description, formHtml, formId) {
+    dialogPreviousFocus = document.activeElement;
+    document.body.classList.add('modal-open');
     $('#dialogRoot').innerHTML = `<div class="overlay" id="modalOverlay"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div class="dialog-head"><div><h2 id="dialogTitle">${title}</h2><p>${description}</p></div><button type="button" class="close-btn" id="dialogClose" aria-label="Close">${closeIcon()}</button></div>${formHtml}</section></div>`;
     $('#dialogClose').addEventListener('click', closeDialog);
     $('#modalOverlay').addEventListener('click', event => { if (event.target.id === 'modalOverlay') closeDialog(); });
     const form = document.getElementById(formId); if (form) form.addEventListener('submit', event => event.preventDefault());
+    $('#dialogClose').focus();
   }
-  function closeDialog() { $('#dialogRoot').innerHTML = ''; }
+  function closeDialog() { $('#dialogRoot').innerHTML = ''; document.body.classList.remove('modal-open'); if (dialogPreviousFocus?.isConnected) dialogPreviousFocus.focus(); }
   function closeIcon() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>'; }
   async function openOwnerAccess() {
     if (owner) { await loadOwnerWorkspace(); return; }
@@ -150,30 +166,66 @@
     hideMainViews(); $('#ownerWorkspace').hidden = false;
     $('#ownerNameLine').textContent = owner.displayName;
     const isMain = owner.role === 'main';
-    $('#ownerRoleLine').textContent = isMain ? 'Main owner · full access' : 'Question uploader · publish only';
+    $('#ownerRoleLine').textContent = isMain ? 'Main owner · full access' : 'Question uploader · publish & edit';
     $('#workspaceTitle').textContent = isMain ? 'Your NSTER, your way.' : 'Share what you know.';
-    $('#workspaceCopy').textContent = isMain ? 'Add helpful answers, keep the visitor password current, and invite a question uploader.' : 'Publish a helpful question and answer for NSTER visitors.';
-    $('#questionFormTitle').textContent = isMain ? 'Add a question and answer' : 'Upload a question and answer';
-    $('#questionFormCopy').textContent = isMain ? 'Share a clear answer. Add a code example when it helps.' : 'Your access lets you publish new answers for visitors.';
-    $('#questionSubmit').innerHTML = `${isMain ? 'Publish question' : 'Upload question'} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`;
-    $('#accessSettings').hidden = !isMain; $('#contributorSettings').hidden = !isMain; $('#existingQuestions').hidden = !isMain;
-    if (isMain) { await loadAdminQuestions(); await loadContributors(); }
+    $('#workspaceCopy').textContent = isMain ? 'Import questions, refine your answers, and manage your private library.' : 'Publish helpful answers and edit your own uploads for NSTER visitors.';
+    resetQuestionEditor();
+    $('#accessSettings').hidden = !isMain; $('#contributorSettings').hidden = !isMain; $('#existingQuestions').hidden = false;
+    $('#adminQuestionsTitle').textContent = isMain ? 'Questions on this page' : 'Your uploaded questions';
+    await loadAdminQuestions();
+    if (isMain) await loadContributors();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function renderQuestions(filter = '') {
     const search = filter.trim().toLocaleLowerCase();
     const filtered = questions.filter(item => `${item.question} ${item.answer} ${item.code}`.toLocaleLowerCase().includes(search));
+    $('#questionCount').textContent = search ? `${filtered.length} of ${questions.length} questions` : `${questions.length} questions · Answers & ready-to-copy code`;
     $('#visitorQaList').innerHTML = filtered.length ? filtered.map((item, index) => `
       <article class="qa-card ${!search && index === 0 ? 'open' : ''}" data-id="${escapeHtml(item.id)}">
-        <button class="qa-question" type="button" aria-expanded="${!search && index === 0 ? 'true' : 'false'}"><span>${escapeHtml(item.question)}</span><span class="chevron">${icons.chevron}</span></button>
-        <div class="answer-wrap"><div class="answer-inner"><div class="answer">${escapeHtml(item.answer)}${item.code ? `<div class="codebox"><div class="code-top"><span>${escapeHtml(item.language || 'Code')}</span><button type="button" class="copy-btn" data-copy="${escapeHtml(item.id)}">${icons.copy} Copy code</button></div><pre><code>${escapeHtml(item.code)}</code></pre></div>` : ''}</div></div></div>
-      </article>`).join('') : '<div class="empty-state">There are no matching answers yet.<br>Ask your NSTER owner to add one.</div>';
+        <button class="qa-question" id="question-${escapeHtml(item.id)}" type="button" aria-controls="answer-${escapeHtml(item.id)}" aria-expanded="${!search && index === 0 ? 'true' : 'false'}"><span>${escapeHtml(item.question)}</span><span class="chevron">${icons.chevron}</span></button>
+        <div class="answer-wrap" id="answer-${escapeHtml(item.id)}" role="region" aria-labelledby="question-${escapeHtml(item.id)}" ${!search && index === 0 ? '' : 'inert'}><div class="answer-inner"><div class="answer">${escapeHtml(item.answer)}${item.code ? `<div class="codebox"><div class="code-top"><span>${escapeHtml(item.filename || item.language || 'Code')}</span><button type="button" class="copy-btn" data-copy="${escapeHtml(item.id)}">${icons.copy} Copy code</button></div><pre><code>${escapeHtml(item.code)}</code></pre></div>` : ''}</div></div></div>
+      </article>`).join('') : `<div class="empty-state">${search ? 'No answers match your search.<br>Try a different word or clear the search.' : 'No questions published yet.<br>Your NSTER owner can add or import answers.'}</div>`;
   }
   async function loadAdminQuestions() {
-    try { questions = (await api('/api/questions')).questions; }
-    catch (error) { showToast(error.message); questions = []; }
     const host = $('#adminQaList');
-    host.innerHTML = questions.length ? questions.map(item => `<div class="admin-qa-row"><span title="${escapeHtml(item.question)}">${escapeHtml(item.question)}</span><button class="delete-btn" type="button" data-delete="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.question)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg></button></div>`).join('') : '<p class="form-note">No questions published yet.</p>';
+    host.innerHTML = loadingCards; host.setAttribute('aria-busy', 'true');
+    try {
+      questions = (await api('/api/questions')).questions;
+      $('#adminQuestionCount').textContent = questions.length;
+      host.innerHTML = questions.length ? questions.map(item => `<div class="admin-qa-row"><div class="admin-question-copy"><span>${escapeHtml(item.question)}</span>${item.filename || item.language ? `<small>${escapeHtml(item.filename || item.language)}</small>` : ''}</div><div class="row-actions"><button class="edit-btn" type="button" data-edit="${escapeHtml(item.id)}" aria-label="Edit ${escapeHtml(item.question)}">Edit</button>${owner?.role === 'main' ? `<button class="delete-btn" type="button" data-delete="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.question)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg></button>` : ''}</div></div>`).join('') : '<div class="empty-state">No questions yet. Publish an answer or import your JSON file above.</div>';
+    } catch (error) {
+      host.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}<br><button class="subtle-btn" type="button" data-retry-admin>Try again</button></div>`;
+      $('#adminQuestionCount').textContent = '—';
+    } finally { host.setAttribute('aria-busy', 'false'); }
+  }
+  function resetQuestionEditor() {
+    editingId = null;
+    $('#questionForm').reset();
+    $('#questionFormCard').classList.remove('is-editing');
+    $('#questionFormTitle').textContent = 'Add a question and answer';
+    $('#questionFormCopy').textContent = 'Share a clear answer. Add a code example when it helps.';
+    $('#questionSubmit').textContent = 'Publish question';
+    $('#cancelEdit').hidden = true;
+    $('#questionFormHint').textContent = '';
+    $('#questionFormHint').classList.remove('error');
+  }
+  function editQuestion(id) {
+    const item = questions.find(row => row.id === id);
+    if (!item || savingQuestion) return;
+    editingId = id;
+    $('#questionInput').value = item.question;
+    $('#answerInput').value = item.answer;
+    $('#codeInput').value = item.code || '';
+    $('#codeLanguage').value = item.language || '';
+    $('#codeFilename').value = item.filename || '';
+    $('#questionFormTitle').textContent = 'Edit question and answer';
+    $('#questionFormCopy').textContent = 'Update the question, answer, or code. Your changes appear after saving.';
+    $('#questionSubmit').textContent = 'Save changes';
+    $('#cancelEdit').hidden = false;
+    $('#questionFormHint').textContent = '';
+    $('#questionFormCard').classList.add('is-editing');
+    $('#questionFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#questionInput').focus({ preventScroll: true });
   }
   async function loadContributors() {
     try {
@@ -204,8 +256,9 @@
       button.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
     });
   });
-  $('#questionSearch').addEventListener('input', event => renderQuestions(event.target.value));
+  $('#questionSearch').addEventListener('input', event => { clearTimeout(searchTimer); const value = event.target.value; searchTimer = setTimeout(() => renderQuestions(value), 100); });
   $('#visitorQaList').addEventListener('click', async event => {
+    if (event.target.closest('[data-retry-questions]')) { await showVisitor(); return; }
     const copy = event.target.closest('[data-copy]');
     if (copy) {
       const item = questions.find(row => row.id === copy.dataset.copy); if (!item) return;
@@ -214,25 +267,54 @@
       return;
     }
     const trigger = event.target.closest('.qa-question'); if (!trigger) return;
-    const card = trigger.closest('.qa-card'); card.classList.toggle('open'); trigger.setAttribute('aria-expanded', card.classList.contains('open'));
+    const card = trigger.closest('.qa-card'); card.classList.toggle('open'); trigger.setAttribute('aria-expanded', card.classList.contains('open')); card.querySelector('.answer-wrap').inert = !card.classList.contains('open');
   });
   $('#questionForm').addEventListener('submit', async event => {
-    event.preventDefault(); const form = event.currentTarget; const button = $('#questionSubmit'); button.disabled = true;
+    event.preventDefault(); if (savingQuestion) return;
+    const button = $('#questionSubmit'); button.disabled = true; savingQuestion = true;
+    $('#cancelEdit').disabled = true;
+    $('#questionFormHint').textContent = ''; $('#questionFormHint').classList.remove('error');
+    const wasEditing = Boolean(editingId);
+    button.textContent = wasEditing ? 'Saving changes…' : 'Publishing…';
     try {
-      await api('/api/questions', { method: 'POST', body: {
+      await api(editingId ? `/api/questions?id=${encodeURIComponent(editingId)}` : '/api/questions', { method: editingId ? 'PATCH' : 'POST', body: {
         question: $('#questionInput').value.trim(), answer: $('#answerInput').value.trim(),
-        language: $('#codeLanguage').value.trim(), code: $('#codeInput').value.trim()
+        language: $('#codeLanguage').value.trim(), code: $('#codeInput').value, filename: $('#codeFilename').value.trim()
       }});
-      form.reset(); showToast('Your question is published on NSTER.');
-      if (owner?.role === 'main') await loadAdminQuestions();
-    } catch (error) { showToast(error.message); }
-    finally { button.disabled = false; }
+      resetQuestionEditor(); showToast(wasEditing ? 'Question and answer updated.' : 'Your question is published on NSTER.');
+      if (owner) await loadAdminQuestions();
+    } catch (error) { $('#questionFormHint').textContent = error.message; $('#questionFormHint').classList.add('error'); }
+    finally { button.disabled = false; savingQuestion = false; $('#cancelEdit').disabled = false; button.textContent = editingId ? 'Save changes' : 'Publish question'; }
+  });
+  $('#cancelEdit').addEventListener('click', () => { if (!savingQuestion) resetQuestionEditor(); });
+  $('#importQuestions').addEventListener('click', () => { if (!savingQuestion) $('#questionFile').click(); });
+  $('#questionFile').addEventListener('change', async event => {
+    const file = event.target.files[0]; if (!file) return;
+    const button = $('#importQuestions'); const hint = $('#importHint');
+    button.disabled = true; button.textContent = 'Importing…'; hint.textContent = ''; hint.classList.remove('error');
+    try {
+      if (file.size > 1_000_000) throw new Error('Choose a JSON file smaller than 1 MB.');
+      let data;
+      try { data = JSON.parse(await file.text()); } catch (_) { throw new Error('This file is not valid JSON. Check its format and try again.'); }
+      const result = await api('/api/questions', { method: 'POST', body: { action: 'import', data } });
+      hint.textContent = `${result.imported} ${result.imported === 1 ? 'question' : 'questions'} imported.${result.skipped ? ` ${result.skipped} duplicate ${result.skipped === 1 ? 'question' : 'questions'} skipped.` : ''}`;
+      if (owner) await loadAdminQuestions();
+      showToast('Import complete. Use Edit to refine any uploaded answer.');
+    } catch (error) { hint.textContent = error.message; hint.classList.add('error'); }
+    finally { button.disabled = false; button.textContent = 'Import JSON'; event.target.value = ''; }
   });
   $('#adminQaList').addEventListener('click', async event => {
+    if (savingQuestion) return;
+    if (event.target.closest('[data-retry-admin]')) { await loadAdminQuestions(); return; }
+    const edit = event.target.closest('[data-edit]'); if (edit) { editQuestion(edit.dataset.edit); return; }
     const button = event.target.closest('[data-delete]'); if (!button || owner?.role !== 'main') return;
-    button.disabled = true;
-    try { await api(`/api/questions?id=${encodeURIComponent(button.dataset.delete)}`, { method: 'DELETE' }); await loadAdminQuestions(); showToast('Question removed.'); }
-    catch (error) { button.disabled = false; showToast(error.message); }
+    const item = questions.find(row => row.id === button.dataset.delete); if (!item) return;
+    showDialog('Remove this question?', 'This removes the answer from your live library. Repository imports do not restore deleted questions.', `<p class="delete-preview">${escapeHtml(item.question)}</p><button class="primary-btn danger-action" id="confirmDelete" type="button">Remove question</button><p class="hint" id="dialogHint" role="status"></p>`);
+    $('#confirmDelete').addEventListener('click', async event => {
+      event.currentTarget.disabled = true;
+      try { await api(`/api/questions?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' }); if (editingId === item.id) resetQuestionEditor(); closeDialog(); await loadAdminQuestions(); showToast('Question removed.'); }
+      catch (error) { if ($('#confirmDelete')) { $('#confirmDelete').disabled = false; setDialogError(error.message); } }
+    });
   });
   $('#visitorPasswordForm').addEventListener('submit', async event => {
     event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button'); button.disabled = true;
@@ -257,7 +339,16 @@
     catch (error) { button.disabled = false; showToast(error.message); }
   });
   $('#ownerLogout').addEventListener('click', () => signOutOwner(true));
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('#dialogRoot').innerHTML) closeDialog(); });
+  document.addEventListener('keydown', event => {
+    if (!$('#dialogRoot').innerHTML) return;
+    if (event.key === 'Escape') closeDialog();
+    if (event.key === 'Tab') {
+      const controls = [...$('#dialogRoot').querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), a[href]')];
+      const first = controls[0]; const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+  });
 
   async function boot() {
     $('#year').textContent = new Date().getFullYear();

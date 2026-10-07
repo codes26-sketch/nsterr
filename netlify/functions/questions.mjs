@@ -1,41 +1,75 @@
 import { endpoint, HttpError, json, method, readBody, requireOwner, requireQuestionsRead, requireSameOrigin, supabase } from './common.mjs';
+import { createHash } from 'node:crypto';
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import { getDb } from '../../db/index.ts';
+import { questions } from '../../db/schema.ts';
+import { editableQuestion, importExistingQuestions, importRepositoryQuestions } from '../../lib/question-library.mjs';
+import { questionRecords, QuestionValidationError, validateQuestion } from '../../lib/question-data.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const fields = 'id,question,answer,code,language,created_at';
+const fields = { id: questions.id, question: questions.question, answer: questions.answer, code: questions.code, language: questions.language, filename: questions.filename, created_at: questions.created_at };
+
+function validated(callback) {
+  try { return callback(); }
+  catch (error) {
+    if (error instanceof QuestionValidationError) throw new HttpError(400, error.message, 'INVALID_QUESTION_DATA');
+    throw error;
+  }
+}
+
+function questionId(event) {
+  const id = event.queryStringParameters?.id || '';
+  if (!UUID.test(id)) throw new HttpError(400, 'Choose a valid question.', 'INVALID_QUESTION_ID');
+  return id;
+}
 
 export const handler = endpoint(async event => {
+  method(event, ['GET', 'POST', 'PATCH', 'DELETE']);
   if (event.httpMethod === 'GET') {
-    await requireQuestionsRead(event);
-    const rows = await supabase(`nster_questions?select=${fields}&order=created_at.desc&limit=300`);
-    return json(200, { questions: Array.isArray(rows) ? rows : [] });
+    const account = await requireQuestionsRead(event);
+    const db = getDb();
+    await importExistingQuestions(db, supabase);
+    await importRepositoryQuestions(db);
+    const condition = account.role === 'uploader' ? and(isNull(questions.deleted_at), eq(questions.created_by, account.id)) : isNull(questions.deleted_at);
+    const rows = await db.select(fields).from(questions).where(condition).orderBy(desc(questions.created_at), questions.id);
+    return json(200, { questions: rows });
   }
   if (event.httpMethod === 'POST') {
     requireSameOrigin(event);
     const account = await requireOwner(event, ['main', 'uploader']);
-    const body = readBody(event);
-    const question = typeof body.question === 'string' ? body.question.trim() : '';
-    const answer = typeof body.answer === 'string' ? body.answer.trim() : '';
-    const code = typeof body.code === 'string' ? body.code : '';
-    const language = typeof body.language === 'string' ? body.language.trim() : '';
-    if (question.length < 3 || question.length > 160) throw new HttpError(400, 'Questions must be 3–160 characters long.', 'INVALID_QUESTION');
-    if (answer.length < 2 || answer.length > 4000) throw new HttpError(400, 'Answers must be 2–4,000 characters long.', 'INVALID_ANSWER');
-    if (code.length > 3000) throw new HttpError(400, 'Code snippets can be up to 3,000 characters.', 'CODE_TOO_LONG');
-    if (language.length > 24) throw new HttpError(400, 'Code language can be up to 24 characters.', 'LANGUAGE_TOO_LONG');
-    const rows = await supabase(`nster_questions?select=${fields}`, {
-      method: 'POST', prefer: 'return=representation',
-      body: [{ question, answer, code, language, created_by: account.id }]
-    });
-    return json(201, { question: rows?.[0] || null });
+    const body = readBody(event, 1_000_000);
+    const db = getDb();
+    if (body.action === 'import') {
+      const rows = validated(() => questionRecords(body.data).map(validateQuestion)).map(row => ({
+        ...row, created_by: account.id,
+        source_key: `upload:${account.id}:${createHash('sha256').update(JSON.stringify(row)).digest('hex')}`
+      }));
+      const inserted = await db.insert(questions).values(rows).onConflictDoNothing({ target: questions.source_key }).returning({ id: questions.id });
+      return json(201, { imported: inserted.length, skipped: rows.length - inserted.length });
+    }
+    const row = validated(() => validateQuestion(body));
+    const [question] = await db.insert(questions).values({ ...row, created_by: account.id }).returning(fields);
+    return json(201, { question });
+  }
+  if (event.httpMethod === 'PATCH') {
+    requireSameOrigin(event);
+    const account = await requireOwner(event, ['main', 'uploader']);
+    const id = questionId(event);
+    const row = validated(() => validateQuestion(readBody(event)));
+    const db = getDb();
+    const [question] = await db.update(questions).set({ ...row, updated_at: new Date() }).where(and(editableQuestion(id, account), isNull(questions.deleted_at))).returning(fields);
+    if (!question) throw new HttpError(404, 'This question is unavailable or you do not have permission to edit it.', 'QUESTION_NOT_FOUND');
+    return json(200, { question });
   }
   if (event.httpMethod === 'DELETE') {
     requireSameOrigin(event);
     await requireOwner(event, ['main']);
-    const id = event.queryStringParameters?.id || '';
-    if (!UUID.test(id)) throw new HttpError(400, 'Choose a valid question to remove.', 'INVALID_QUESTION_ID');
-    await supabase(`nster_questions?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' });
+    const id = questionId(event);
+    const db = getDb();
+    const removed = await db.update(questions).set({ deleted_at: new Date() }).where(and(eq(questions.id, id), isNull(questions.deleted_at))).returning({ id: questions.id });
+    if (!removed.length) throw new HttpError(404, 'This question has already been removed.', 'QUESTION_NOT_FOUND');
     return json(200, { ok: true });
   }
-  method(event, ['GET', 'POST', 'DELETE']);
 });
 
 export default handler;
