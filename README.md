@@ -1,6 +1,6 @@
 # NSTER
 
-NSTER is a password-protected Q&A site. Questions, answers, code examples, and import history are stored in Netlify Database. The existing Supabase-backed owner accounts and shared visitor password are unchanged. Netlify Functions verify visitor and owner sessions before returning or changing data.
+NSTER is a password-protected Q&A site. Questions, answers, code examples, and import history are stored in Netlify Database. PDF answer attachments are stored in a private Supabase Storage bucket. The existing Supabase-backed owner accounts and shared visitor password are unchanged. Netlify Functions verify visitor and owner sessions before returning or changing data.
 
 ## Deploy to Netlify
 
@@ -10,6 +10,7 @@ Deploy the **contents of this `outputs` folder as the site repository root** and
 
 1. Create a Supabase project.
 2. Open **SQL Editor**, paste in [`supabase/schema.sql`](supabase/schema.sql), and run it.
+3. Run [`supabase/setup-pdf-storage.sql`](supabase/setup-pdf-storage.sql) once to create the private PDF bucket.
 3. From **Project Settings → API Keys** (or the project Connect dialog), copy the project URL and a server-side **Secret key** (`sb_secret_…`). Keep the secret key private.
 
 ### 2. Add Netlify environment variables
@@ -55,7 +56,11 @@ In the owner workspace, the **Upload questions from JSON** card has a visible fi
 
 Each file may be an array of question objects, an object containing a `questions` array, or an object containing a `practicals` array. Each object requires `question` and `answer`; `code`, `language`, and `filename` are optional. A combined upload supports up to 300 questions and 1 MB. Question titles support 3–160 characters, answers 2–4,000 characters, and code up to 3,000 characters. Java filenames automatically select the Java language when none is supplied. The whole import is validated before insertion. Duplicate questions, including reuploads of the included practicals, are skipped, and failed uploads retain the selection for retry.
 
-Select **Edit** beside a published question to change its question, answer, filename, language, or code, then select **Save changes**. **Cancel editing** leaves the published version untouched. Main owners can edit any question; uploaders only see and edit their own uploads. Removal requires confirmation. Stable import identifiers ensure later library loads and redeploys do not overwrite saved edits or restore removed questions. When extending the repository JSON, keep existing practical IDs stable and give new entries unique IDs.
+Select **Edit** beside a published question to change its question, answer, filename, language, code, or PDF attachment, then select **Save changes**. **Cancel editing** leaves the published version untouched. Main owners can edit any question; uploaders only see and edit their own uploads. Removal requires confirmation. Stable import identifiers ensure later library loads and redeploys do not overwrite saved edits or restore removed questions. When extending the repository JSON, keep existing practical IDs stable and give new entries unique IDs.
+
+## PDF answers
+
+In the owner question form, choose an optional PDF before publishing or editing an answer. Files are limited to 4 MB. A new PDF replaces the current attachment; saving an edit without selecting a file keeps the existing one. Visitors see a **View attached PDF** link under the answer. The link streams the file through an authenticated Netlify Function, so visitors must have opened NSTER with the visitor password. PDF bytes are held in the private `nster-answer-pdfs` Supabase Storage bucket; filenames and storage keys are kept with the Netlify Database question row. The Netlify database migration adds the attachment fields automatically on deploy. Run `supabase/setup-pdf-storage.sql` once in the Supabase SQL Editor before using PDF uploads. No new Netlify environment variables are required.
 
 The light palette and lime accents are retained. Dark mode uses pure-black page, card, input, dialog, and code backgrounds, with borders defining the layout. Theme selection remains local to each browser.
 
@@ -70,3 +75,4 @@ The static page alone is not a working site because `/api/*` routes are Netlify 
 - Passwords are salted and hashed on the server. The Supabase secret key, setup key, and session signing secret must stay in server-side environment variables.
 - Login attempts are rate-limited by a keyed hash of the request IP. The raw IP is not stored in the database.
 - Theme preference is saved in the visitor's browser. Q&A and import history are shared through Netlify Database; existing accounts and access settings remain in Supabase.
+

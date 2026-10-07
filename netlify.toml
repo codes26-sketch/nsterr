@@ -48,6 +48,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/question-pdf"
+  to = "/.netlify/functions/question-pdf"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/settings"
   to = "/.netlify/functions/settings"
   status = 200
@@ -73,3 +79,4 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests"
+

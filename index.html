@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7ee">
+  <meta name="description" content="NSTER — a calm, password-protected home for useful answers.">
+  <title>NSTER</title>
+  <link rel="stylesheet" href="/styles.css?v=bulk-upload-4">
+  <script src="/app.js?v=bulk-upload-4" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header">
+      <a class="brand" href="/" id="brandHome" aria-label="NSTER home"><span class="brand-mark">N.</span><span>NSTER</span></a>
+      <div class="head-actions">
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Switch theme"></button>
+        <button class="icon-btn owner-entry" id="ownerOpen" type="button" aria-label="Owner access" title="Owner access"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2A1.7 1.7 0 0 0 7.8 17l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2A1.7 1.7 0 0 0 5.4 5.8l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 1 1 3.4 0v.2A1.7 1.7 0 0 0 17 3.4l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
+      </div>
+    </header>
+
+    <main id="visitorGate" class="gate-page">
+      <div class="eyebrow">A little space for clarity</div>
+      <section class="gate-card" aria-labelledby="gateTitle">
+        <div class="lock-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><path d="M12 14v3"/></svg></div>
+        <h1 id="gateTitle">Visitor access</h1>
+        <p class="card-copy" id="gateCopy">Enter the password shared by your NSTER owner to view the answers.</p>
+        <form id="visitorForm">
+          <label for="visitorPassword">Visitor password</label>
+          <div class="input-wrap"><input class="field" id="visitorPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><button class="show-pass" type="button" data-toggle="visitorPassword" aria-label="Show password"></button></div>
+          <button class="primary-btn" type="submit">Open NSTER <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="hint" id="gateHint" aria-live="polite"></p>
+        </form>
+        <div class="privacy-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>Your owner controls who can visit this page.</div>
+      </section>
+    </main>
+
+    <main class="content-view" id="visitorContent" hidden>
+      <div class="welcome-row"><div><div class="eyebrow">Welcome to NSTER</div><h1>What would you like <span>to know?</span></h1><p>Choose a question to reveal its answer. Code is ready to copy.</p></div>
+        <label class="search"><span class="sr-only">Search questions</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input class="field" id="questionSearch" type="search" placeholder="Find a question"></label>
+      </div>
+      <p class="library-summary" id="questionCount" role="status"></p>
+      <div class="qa-list" id="visitorQaList" aria-busy="false"></div>
+    </main>
+
+    <main class="content-view" id="ownerWorkspace" hidden>
+      <div class="owner-workspace">
+        <div class="owner-bar"><div class="owner-id"><span class="owner-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span><span id="ownerNameLine">Owner workspace</span><small id="ownerRoleLine">Main owner</small></span></div><button class="subtle-btn" id="ownerLogout" type="button">Sign out</button></div>
+        <div class="eyebrow">NSTER · OWNER SPACE</div><h1 class="workspace-title" id="workspaceTitle">Your NSTER, your way.</h1><p class="workspace-copy" id="workspaceCopy">Add helpful answers, keep the visitor password current, and invite a question uploader.</p>
+        <section class="owner-card bulk-import-card" id="bulkImportCard">
+          <div class="eyebrow">BULK UPLOAD</div><h2>Upload questions from JSON</h2><p>Add multiple questions and answers together. Choose one or more JSON files, review the preview, then upload them all.</p>
+          <label for="questionFile">Choose JSON files</label><input class="field json-file-input" id="questionFile" type="file" accept=".json,application/json" multiple aria-describedby="importFormat">
+          <p class="form-note" id="importFormat">Accepts an array, or a <code>questions</code> / <code>practicals</code> list. Up to 300 questions and 1 MB total. Answers, code, and filenames stay together.</p>
+          <div class="import-preview" id="importPreview" hidden></div>
+          <div class="bulk-import-actions"><button class="primary-btn" id="importQuestions" type="button" disabled>Upload all questions</button><a class="subtle-btn template-link" href="/question-template.json" download>Download JSON example</a></div>
+          <button class="subtle-btn included-import-btn" id="importIncluded" type="button">Load included Java practicals (35)</button>
+          <p class="hint" id="importHint" role="status"></p>
+        </section>
+        <section class="owner-card" id="questionFormCard"><h2 id="questionFormTitle">Add a question and answer</h2><p id="questionFormCopy">Share a clear answer. Add a code example when it helps.</p>
+          <form class="owner-form" id="questionForm">
+            <div><label for="questionInput">Question</label><input class="field" id="questionInput" minlength="3" maxlength="160" placeholder="e.g. Where can I find the setup guide?" required></div>
+            <div><label for="answerInput">Answer</label><textarea class="field" id="answerInput" minlength="2" maxlength="4000" placeholder="Write a clear, helpful answer…" required></textarea></div>
+            <div><label for="codeFilename">Filename <span class="optional">(optional)</span></label><input class="field" id="codeFilename" maxlength="128" placeholder="e.g. P1.java"></div>
+            <div class="split-fields"><div><label for="codeLanguage">Code language <span class="optional">(optional)</span></label><input class="field" id="codeLanguage" maxlength="24" placeholder="JavaScript"></div><div><label for="codeInput">Code snippet <span class="optional">(optional)</span></label><textarea class="field code-input" id="codeInput" maxlength="3000" rows="5" placeholder="Paste code here"></textarea></div></div>
+            <div><label for="answerPdf">PDF answer <span class="optional">(optional)</span></label><input class="field pdf-file-input" id="answerPdf" type="file" accept=".pdf,application/pdf" aria-describedby="pdfUploadHelp"><p class="form-note" id="pdfUploadHelp">Attach one PDF up to 4 MB. Visitors can open it from this answer. Selecting a new PDF replaces the current attachment.</p><p class="form-note current-pdf-note" id="currentPdfNote" hidden></p></div>
+            <div class="form-actions"><button class="primary-btn" type="submit" id="questionSubmit">Publish question <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="subtle-btn" type="button" id="cancelEdit" hidden>Cancel editing</button></div>
+            <p class="hint" id="questionFormHint" role="status"></p>
+          </form>
+          <div class="existing-questions" id="existingQuestions"><div class="library-heading"><h3 id="adminQuestionsTitle">Questions on this page</h3><span class="count-badge" id="adminQuestionCount">0</span></div><div class="admin-qa-list" id="adminQaList" aria-busy="false"></div></div>
+        </section>
+        <section class="owner-card" id="accessSettings"><h2>Visitor password</h2><p>Share the new password with visitors after changing it.</p><form id="visitorPasswordForm" class="owner-form"><div><label for="newVisitorPassword">New visitor password</label><input class="field" id="newVisitorPassword" type="password" minlength="5" maxlength="100" placeholder="At least 5 characters" required></div><button class="primary-btn" type="submit">Update visitor password</button></form></section>
+        <section class="owner-card" id="contributorSettings"><h2>Invite a question uploader</h2><p>This account can publish questions and edit its own uploads. It cannot change access settings or remove content.</p><form id="contributorForm" class="owner-form"><div class="split-fields"><div><label for="contributorName">Username</label><input class="field" id="contributorName" minlength="3" maxlength="32" placeholder="e.g. sam" required></div><div><label for="contributorDisplayName">Display name</label><input class="field" id="contributorDisplayName" maxlength="60" placeholder="e.g. Sam" required></div></div><div><label for="contributorPassword">Account password</label><input class="field" id="contributorPassword" type="password" minlength="3" maxlength="100" placeholder="At least 3 characters" required></div><button class="primary-btn" type="submit">Create uploader account</button></form><div class="existing-questions"><h3>Uploader accounts</h3><div class="admin-qa-list" id="contributorList"></div></div></section>
+      </div>
+    </main>
+
+    <footer><span>© <span id="year"></span> NSTER</span><span>A calmer place to find what you need.</span></footer>
+  </div>
+  <div id="dialogRoot"></div><div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
+
