@@ -28,6 +28,12 @@ export function endpoint(handler) {
     }
     catch (error) {
       if (error instanceof HttpError) result = json(error.statusCode, { error: error.message, code: error.code }, error.headers || {});
+      else if ((error.code || error.cause?.code) === '42501') {
+        result = json(503, { error: 'Question storage cannot save changes because the database connection is read-only. Check the Netlify Database runtime permissions.', code: 'DATABASE_READ_ONLY' });
+      }
+      else if ((error.code || error.cause?.code) === '42P01') {
+        result = json(503, { error: 'Question storage is not initialized yet. Complete the Netlify deployment to apply its database migrations.', code: 'DATABASE_NOT_INITIALIZED' });
+      }
       else {
         console.error('NSTER function error');
         result = json(500, { error: 'NSTER could not complete that request. Please try again.', code: 'SERVER_ERROR' });
@@ -70,9 +76,9 @@ export function requireSameOrigin(event) {
   if (originHost !== host) throw new HttpError(403, 'This request did not come from this site.', 'ORIGIN_DENIED');
 }
 
-export function readBody(event) {
+export function readBody(event, maxLength = 16_000) {
   if (!event.body) return {};
-  if (event.body.length > 16_000) throw new HttpError(413, 'That request is too large.', 'BODY_TOO_LARGE');
+  if (event.body.length > maxLength) throw new HttpError(413, 'That request is too large.', 'BODY_TOO_LARGE');
   try {
     const value = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body);
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Expected an object');
@@ -220,7 +226,7 @@ export async function requireOwner(event, roles = ['main', 'uploader']) {
 export async function requireQuestionsRead(event) {
   const visitor = await readVisitorSession(event);
   if (visitor) return { role: 'visitor' };
-  return requireOwner(event, ['main']);
+  return requireOwner(event, ['main', 'uploader']);
 }
 
 export function idParam(event) { return event.queryStringParameters?.id || ''; }
