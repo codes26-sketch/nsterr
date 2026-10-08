@@ -81,58 +81,7 @@ export const handler = endpoint(async event => {
     const account = await requireQuestionsRead(event);
     const question = await accessibleQuestion(db, id, account);
     if (!question?.pdf_path || !question.pdf_filename) throw new HttpError(404, 'This PDF attachment is unavailable.', 'PDF_NOT_FOUND');
-    const expectedPath = new RegExp('^questions/' + id + '/[0-9a-f-]{36}\\.pdf
-    const response = await supabaseStorageObject('authenticated/' + PDF_BUCKET + '/' + question.pdf_path);
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > MAX_PDF_BYTES || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
-      throw new HttpError(404, 'This PDF attachment is unavailable.', 'PDF_NOT_FOUND');
-    }
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': disposition(question.pdf_filename),
-        'Content-Length': String(bytes.length),
-        'Cache-Control': 'private, no-store',
-        'X-Content-Type-Options': 'nosniff'
-      },
-      body: bytes.toString('base64'),
-      isBase64Encoded: true
-    };
-  }
-
-  requireSameOrigin(event);
-  const account = await requireOwner(event, ['main', 'uploader']);
-  const body = readBody(event, MAX_BODY_LENGTH);
-  const { filename, bytes } = parsePdf(body);
-  const current = await accessibleQuestion(db, id, account);
-  if (!current) throw new HttpError(404, 'This question is unavailable or you do not have permission to edit it.', 'QUESTION_NOT_FOUND');
-
-  const storagePath = 'questions/' + id + '/' + randomUUID() + '.pdf';
-  await supabaseStorageObject(PDF_BUCKET + '/' + storagePath, {
-    method: 'POST',
-    body: bytes,
-    contentType: 'application/pdf'
-  });
-
-  let updated;
-  try {
-    [updated] = await db.update(questions)
-      .set({ pdf_path: storagePath, pdf_filename: filename, pdf_size: bytes.length, updated_at: new Date() })
-      .where(and(editableQuestion(id, account), isNull(questions.deleted_at)))
-      .returning({ id: questions.id, pdf_filename: questions.pdf_filename, pdf_size: questions.pdf_size });
-    if (!updated) throw new HttpError(404, 'This question is unavailable or you do not have permission to edit it.', 'QUESTION_NOT_FOUND');
-  } catch (error) {
-    await removeStoredPdf(storagePath);
-    throw error;
-  }
-
-  if (current.pdf_path) await removeStoredPdf(current.pdf_path);
-  return json(200, { file: { filename: updated.pdf_filename, size: updated.pdf_size } });
-});
-
-export default handler;
-, 'i');
+    const expectedPath = new RegExp('^questions/' + id + '/[0-9a-f-]{36}\\.pdf$', 'i');
     if (!expectedPath.test(question.pdf_path)) throw new HttpError(404, 'This PDF attachment is unavailable.', 'PDF_NOT_FOUND');
     const response = await supabaseStorageObject('authenticated/' + PDF_BUCKET + '/' + question.pdf_path);
     const bytes = Buffer.from(await response.arrayBuffer());
@@ -184,4 +133,3 @@ export default handler;
 });
 
 export default handler;
-

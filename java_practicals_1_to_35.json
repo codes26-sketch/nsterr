@@ -1,0 +1,252 @@
+{
+  "title": "Java Practical Questions, Answers and Codes",
+  "source": "Java_Practical_Solutions.pdf",
+  "count": 35,
+  "practicals": [
+    {
+      "id": 1,
+      "question": "Constructor Overloading, Method Overloading, Static Method",
+      "answer": "Demonstrates Constructor Overloading, Method Overloading, Static Method using the Java code provided in the practical.",
+      "code": "class Box {\n    int l, w;\n    Box() { l = w = 1; }\n    Box(int s) { l = w = s; }\n    Box(int l, int w) { this.l = l; this.w = w; }\n    int area() { return l * w; }\n    int area(int h) { return l * w * h; }              // method overloading\n    static void info() { System.out.println(\"Static method of Box\"); }\n}\npublic class P1 {\n    public static void main(String[] a) {\n        Box.info();\n        System.out.println(new Box().area());\n        System.out.println(new Box(4).area());\n        System.out.println(new Box(2, 3).area(5));\n    }\n}",
+      "filename": "P1.java"
+    },
+    {
+      "id": 2,
+      "question": "Inheritance",
+      "answer": "Demonstrates Inheritance using the Java code provided in the practical.",
+      "code": "class Animal { void eat() { System.out.println(\"Eating...\"); } }\nclass Dog extends Animal { void bark() { System.out.println(\"Barking...\"); } }\npublic class P2 {\n    public static void main(String[] a) {\n        Dog d = new Dog();\n        d.eat(); d.bark();\n    }\n}",
+      "filename": "P2.java"
+    },
+    {
+      "id": 3,
+      "question": "Method Overriding",
+      "answer": "Demonstrates Method Overriding using the Java code provided in the practical.",
+      "code": "class Bank { double rate() { return 5.0; } }\nclass SBI extends Bank { @Override double rate() { return 6.5; } }\nclass HDFC extends Bank { @Override double rate() { return 7.0; } }\npublic class P3 {\n    public static void main(String[] a) {\n        Bank b = new SBI();   System.out.println(\"SBI: \" + b.rate());\n        b = new HDFC();       System.out.println(\"HDFC: \" + b.rate());\n    }\n}",
+      "filename": "P3.java"
+    },
+    {
+      "id": 4,
+      "question": "Abstract Classes and Methods",
+      "answer": "Demonstrates Abstract Classes and Methods using the Java code provided in the practical.",
+      "code": "abstract class Shape {\n    abstract double area();\n    void show() { System.out.println(\"Area = \" + area()); }\n}\nclass Circle extends Shape {\n    double r; Circle(double r) { this.r = r; }\n    double area() { return Math.PI * r * r; }\n}\nclass Rectangle extends Shape {\n    double l, w; Rectangle(double l, double w) { this.l = l; this.w = w; }\n    double area() { return l * w; }\n}\npublic class P4 {\n    public static void main(String[] a) {\n        new Circle(3).show();\n        new Rectangle(4, 5).show();\n    }\n}",
+      "filename": "P4.java"
+    },
+    {
+      "id": 5,
+      "question": "Interfaces",
+      "answer": "Demonstrates Interfaces using the Java code provided in the practical.",
+      "code": "interface Vehicle { void start(); void stop(); }\nclass Car implements Vehicle {\n    public void start() { System.out.println(\"Car started\"); }\n    public void stop() { System.out.println(\"Car stopped\"); }\n}\npublic class P5 {\n    public static void main(String[] a) {\n        Vehicle v = new Car();\n        v.start(); v.stop();\n    }\n}",
+      "filename": "P5.java"
+    },
+    {
+      "id": 6,
+      "question": "User-Defined Exception",
+      "answer": "Demonstrates User-Defined Exception using the Java code provided in the practical.",
+      "code": "class AgeException extends Exception {\n    AgeException(String msg) { super(msg); }\n}\npublic class P6 {\n    static void check(int age) throws AgeException {\n        if (age < 18) throw new AgeException(\"Age must be 18 or above\");\n        System.out.println(\"Eligible to vote\");\n    }\n    public static void main(String[] a) {\n        try { check(20); check(15); }\n        catch (AgeException e) { System.out.println(\"Caught: \" + e.getMessage()); }\n    }\n}",
+      "filename": "P6.java"
+    },
+    {
+      "id": 7,
+      "question": "Swing - Student Resume Form",
+      "answer": "Demonstrates Swing - Student Resume Form using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P7 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Student Resume\");\n        f.setLayout(new GridLayout(8, 2, 5, 5));\n        JTextField name = new JTextField(), email = new JTextField(), phone = new JTextField();\n        JRadioButton m = new JRadioButton(\"Male\", true), fm = new JRadioButton(\"Female\");\n        ButtonGroup g = new ButtonGroup(); g.add(m); g.add(fm);\n        JPanel gp = new JPanel(); gp.add(m); gp.add(fm);\n        JComboBox<String> course = new JComboBox<>(new String[]{\"BSc CS\", \"BSc IT\", \"BCom\"});\n        JCheckBox j = new JCheckBox(\"Java\"), py = new JCheckBox(\"Python\");\n        JPanel sp = new JPanel(); sp.add(j); sp.add(py);\n        JTextArea obj = new JTextArea(3, 15);\n        JButton sub = new JButton(\"Submit\");\n        f.add(new JLabel(\"Name\")); f.add(name);   f.add(new JLabel(\"Email\")); f.add(email);\n        f.add(new JLabel(\"Phone\")); f.add(phone); f.add(new JLabel(\"Gender\")); f.add(gp);\n        f.add(new JLabel(\"Course\")); f.add(course); f.add(new JLabel(\"Skills\")); f.add(sp);\n        f.add(new JLabel(\"Objective\")); f.add(new JScrollPane(obj));\n        f.add(new JLabel()); f.add(sub);\n        sub.addActionListener(e -> JOptionPane.showMessageDialog(f, \"Resume of \" + name.getText() + \" submitted\"));\n        f.setSize(420, 400); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P7.java"
+    },
+    {
+      "id": 8,
+      "question": "Swing - Simple Calculator",
+      "answer": "Demonstrates Swing - Simple Calculator using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P8 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Calculator\"); f.setLayout(new GridLayout(0, 1, 5, 5));\n        JTextField t1 = new JTextField(), t2 = new JTextField();\n        JLabel r = new JLabel(\"Result: \", JLabel.CENTER);\n        JPanel bp = new JPanel(new GridLayout(1, 4));\n        for (String o : new String[]{\"+\", \"-\", \"*\", \"/\"}) {\n            JButton b = new JButton(o);\n            b.addActionListener(e -> {\n                try {\n                    double p = Double.parseDouble(t1.getText()), q = Double.parseDouble(t2.getText());\n                    double z = o.equals(\"+\") ? p + q : o.equals(\"-\") ? p - q : o.equals(\"*\") ? p * q : p / q;\n                    r.setText(\"Result: \" + z);\n                } catch (Exception ex) { r.setText(\"Invalid input\"); }\n            });\n            bp.add(b);\n        }\n        f.add(t1); f.add(t2); f.add(bp); f.add(r);\n        f.setSize(300, 220); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P8.java"
+    },
+    {
+      "id": 9,
+      "question": "Swing - Accept Record of a Table and Submit",
+      "answer": "Demonstrates Swing - Accept Record of a Table and Submit using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import javax.swing.table.DefaultTableModel; import java.awt.*;\npublic class P9 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Employee Record\");\n        DefaultTableModel m = new DefaultTableModel(new String[]{\"ID\", \"Name\", \"Dept\"}, 0);\n        JTextField id = new JTextField(), name = new JTextField(), dept = new JTextField();\n        JButton sub = new JButton(\"Submit\");\n        JPanel p = new JPanel(new GridLayout(4, 2, 5, 5));\n        p.add(new JLabel(\"ID\")); p.add(id); p.add(new JLabel(\"Name\")); p.add(name);\n        p.add(new JLabel(\"Dept\")); p.add(dept); p.add(sub);\n        sub.addActionListener(e -> {\n            m.addRow(new Object[]{id.getText(), name.getText(), dept.getText()});\n            id.setText(\"\"); name.setText(\"\"); dept.setText(\"\");\n        });\n        f.add(p, BorderLayout.NORTH); f.add(new JScrollPane(new JTable(m)), BorderLayout.CENTER);\n        f.setSize(350, 330); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P9.java"
+    },
+    {
+      "id": 10,
+      "question": "Method Overriding - Employee and Developer",
+      "answer": "Demonstrates Method Overriding - Employee and Developer using the Java code provided in the practical.",
+      "code": "class Employee { void work() { System.out.println(\"Employee does general work\"); } }\nclass Developer extends Employee {\n    @Override void work() { System.out.println(\"Developer writes and tests code\"); }\n}\npublic class P10 {\n    public static void main(String[] a) {\n        Employee e = new Developer();\n        e.work();\n    }\n}",
+      "filename": "P10.java"
+    },
+    {
+      "id": 11,
+      "question": "Class and Object - Student",
+      "answer": "Demonstrates Class and Object - Student using the Java code provided in the practical.",
+      "code": "class Student {\n    int roll; String name; double marks;\n    void display() { System.out.println(roll + \" \" + name + \" \" + marks); }\n}\npublic class P11 {\n    public static void main(String[] a) {\n        Student s1 = new Student(); s1.roll = 1; s1.name = \"Amit\"; s1.marks = 85.5;\n        Student s2 = new Student(); s2.roll = 2; s2.name = \"Riya\"; s2.marks = 91;\n        s1.display(); s2.display();\n    }\n}",
+      "filename": "P11.java"
+    },
+    {
+      "id": 12,
+      "question": "Constructor - Book",
+      "answer": "Demonstrates Constructor - Book using the Java code provided in the practical.",
+      "code": "class Book {\n    String title, author; double price;\n    Book(String t, String a, double p) { title = t; author = a; price = p; }\n    void show() { System.out.println(title + \" | \" + author + \" | Rs.\" + price); }\n}\npublic class P12 {\n    public static void main(String[] a) {\n        new Book(\"Java Complete Reference\", \"Herbert Schildt\", 650).show();\n    }\n}",
+      "filename": "P12.java"
+    },
+    {
+      "id": 13,
+      "question": "Method Overloading - Area",
+      "answer": "Demonstrates Method Overloading - Area using the Java code provided in the practical.",
+      "code": "public class P13 {\n    static int area(int side)             { return side * side; }       // square\n    static int area(int l, int b)         { return l * b; }             // rectangle\n    static double area(double radius)     { return Math.PI * radius * radius; } // circle\n    public static void main(String[] a) {\n        System.out.println(\"Square    : \" + area(5));\n        System.out.println(\"Rectangle : \" + area(4, 6));\n        System.out.println(\"Circle    : \" + area(2.5));\n    }\n}",
+      "filename": "P13.java"
+    },
+    {
+      "id": 14,
+      "question": "Static Members - Object Counter",
+      "answer": "Demonstrates Static Members - Object Counter using the Java code provided in the practical.",
+      "code": "class Student {\n    static int count = 0;\n    Student() { count++; }\n}\npublic class P14 {\n    public static void main(String[] a) {\n        new Student(); new Student(); new Student();\n        System.out.println(\"Objects created: \" + Student.count);\n    }\n}",
+      "filename": "P14.java"
+    },
+    {
+      "id": 15,
+      "question": "Single Inheritance - Person and Student",
+      "answer": "Demonstrates Single Inheritance - Person and Student using the Java code provided in the practical.",
+      "code": "class Person {\n    String name = \"Amit\";\n    void showName() { System.out.println(\"Name: \" + name); }\n}\nclass Student extends Person {\n    int roll = 101;\n    void showRoll() { System.out.println(\"Roll: \" + roll); }\n}\npublic class P15 {\n    public static void main(String[] a) {\n        Student s = new Student();\n        s.showName(); s.showRoll();\n    }\n}",
+      "filename": "P15.java"
+    },
+    {
+      "id": 16,
+      "question": "Multilevel Inheritance - Person, Employee, Manager",
+      "answer": "Demonstrates Multilevel Inheritance - Person, Employee, Manager using the Java code provided in the practical.",
+      "code": "class Person   { String name = \"Riya\"; }\nclass Employee extends Person { int id = 501; }\nclass Manager extends Employee {\n    String dept = \"IT\";\n    void show() { System.out.println(name + \" \" + id + \" \" + dept); }\n}\npublic class P16 {\n    public static void main(String[] a) { new Manager().show(); }\n}",
+      "filename": "P16.java"
+    },
+    {
+      "id": 17,
+      "question": "Method Overriding - Animal, Dog, Cat",
+      "answer": "Demonstrates Method Overriding - Animal, Dog, Cat using the Java code provided in the practical.",
+      "code": "class Animal { void sound() { System.out.println(\"Animal sound\"); } }\nclass Dog extends Animal { @Override void sound() { System.out.println(\"Dog barks: Woof\"); } }\nclass Cat extends Animal { @Override void sound() { System.out.println(\"Cat meows: Meow\"); } }\npublic class P17 {\n    public static void main(String[] a) {\n        Animal x = new Dog(); x.sound();\n        x = new Cat();         x.sound();\n    }\n}",
+      "filename": "P17.java"
+    },
+    {
+      "id": 18,
+      "question": "Abstract Class (Shape, Circle, Rectangle)",
+      "answer": "Same as Practical 4: demonstrates an abstract Shape class with area() implemented by Circle and Rectangle.",
+      "code": "abstract class Shape {\n    abstract double area();\n    void show() { System.out.println(\"Area = \" + area()); }\n}\nclass Circle extends Shape {\n    double r; Circle(double r) { this.r = r; }\n    double area() { return Math.PI * r * r; }\n}\nclass Rectangle extends Shape {\n    double l, w; Rectangle(double l, double w) { this.l = l; this.w = w; }\n    double area() { return l * w; }\n}\npublic class P18 {\n    public static void main(String[] a) {\n        new Circle(3).show();\n        new Rectangle(4, 5).show();\n    }\n}",
+      "filename": "P18.java"
+    },
+    {
+      "id": 19,
+      "question": "Interface - Printable",
+      "answer": "Demonstrates Interface - Printable using the Java code provided in the practical.",
+      "code": "interface Printable { void print(); }\nclass Student implements Printable {\n    String name; int roll;\n    Student(String n, int r) { name = n; roll = r; }\n    public void print() { System.out.println(\"Student: \" + name + \", Roll: \" + roll); }\n}\npublic class P19 {\n    public static void main(String[] a) { new Student(\"Amit\", 7).print(); }\n}",
+      "filename": "P19.java"
+    },
+    {
+      "id": 20,
+      "question": "Multiple Interfaces - Readable and Writable",
+      "answer": "Demonstrates Multiple Interfaces - Readable and Writable using the Java code provided in the practical.",
+      "code": "interface Readable { void read(); }\ninterface Writable { void write(); }\nclass FileHandler implements Readable, Writable {\n    public void read() { System.out.println(\"Reading data...\"); }\n    public void write() { System.out.println(\"Writing data...\"); }\n}\npublic class P20 {\n    public static void main(String[] a) {\n        FileHandler f = new FileHandler();\n        f.read(); f.write();\n    }\n}",
+      "filename": "P20.java"
+    },
+    {
+      "id": 21,
+      "question": "Method Overriding - Animal and Dog",
+      "answer": "Demonstrates Method Overriding - Animal and Dog using the Java code provided in the practical.",
+      "code": "class Animal { void sound() { System.out.println(\"Animal makes a sound\"); } }\nclass Dog extends Animal { @Override void sound() { System.out.println(\"Dog barks\"); } }\npublic class P21 {\n    public static void main(String[] a) { new Dog().sound(); }\n}",
+      "filename": "P21.java"
+    },
+    {
+      "id": 22,
+      "question": "Method Overriding - Vehicle and Car",
+      "answer": "Demonstrates Method Overriding - Vehicle and Car using the Java code provided in the practical.",
+      "code": "class Vehicle { void run() { System.out.println(\"Vehicle is running\"); } }\nclass Car extends Vehicle { @Override void run() { System.out.println(\"Car is running on 4 wheels\"); } }\npublic class P22 {\n    public static void main(String[] a) {\n        Vehicle v = new Car();\n        v.run();\n    }\n}",
+      "filename": "P22.java"
+    },
+    {
+      "id": 23,
+      "question": "Method Overriding - Person and Student",
+      "answer": "Demonstrates Method Overriding - Person and Student using the Java code provided in the practical.",
+      "code": "class Person {\n    void display() { System.out.println(\"Person details\"); }\n}\nclass Student extends Person {\n    @Override void display() { System.out.println(\"Student: Amit, Roll 7, Class SYCS\"); }\n}\npublic class P23 {\n    public static void main(String[] a) { new Student().display(); }\n}",
+      "filename": "P23.java"
+    },
+    {
+      "id": 24,
+      "question": "Method Overriding - Shape, Circle, Rectangle",
+      "answer": "Demonstrates Method Overriding - Shape, Circle, Rectangle using the Java code provided in the practical.",
+      "code": "class Shape { double area() { return 0; } }\nclass Circle extends Shape {\n    double r = 3;\n    @Override double area() { return Math.PI * r * r; }\n}\nclass Rectangle extends Shape {\n    double l = 4, w = 5;\n    @Override double area() { return l * w; }\n}\npublic class P24 {\n    public static void main(String[] a) {\n        Shape s = new Circle();     System.out.println(\"Circle: \" + s.area());\n        s = new Rectangle();        System.out.println(\"Rectangle: \" + s.area());\n    }\n}",
+      "filename": "P24.java"
+    },
+    {
+      "id": 25,
+      "question": "Swing - Student Form",
+      "answer": "Demonstrates Swing - Student Form using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P25 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Student Form\"); f.setLayout(new FlowLayout());\n        JTextField n = new JTextField(12), r = new JTextField(12);\n        JComboBox<String> c = new JComboBox<>(new String[]{\"BSc CS\", \"BSc IT\", \"BCom\"});\n        JRadioButton m = new JRadioButton(\"Male\", true), fm = new JRadioButton(\"Female\");\n        ButtonGroup g = new ButtonGroup(); g.add(m); g.add(fm);\n        JButton b = new JButton(\"Submit\");\n        f.add(new JLabel(\"Name\")); f.add(n); f.add(new JLabel(\"Roll No\")); f.add(r);\n        f.add(new JLabel(\"Course\")); f.add(c); f.add(m); f.add(fm); f.add(b);\n        b.addActionListener(e -> JOptionPane.showMessageDialog(f, \"Name: \" + n.getText()\n            + \"\\nRoll: \" + r.getText() + \"\\nCourse: \" + c.getSelectedItem()\n            + \"\\nGender: \" + (m.isSelected() ? \"Male\" : \"Female\")));\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P25.java"
+    },
+    {
+      "id": 26,
+      "question": "Swing - Login Form",
+      "answer": "Demonstrates Swing - Login Form using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P26 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Login\"); f.setLayout(new FlowLayout());\n        JTextField u = new JTextField(12); JPasswordField p = new JPasswordField(12);\n        JButton b = new JButton(\"Login\");\n        f.add(new JLabel(\"Username\")); f.add(u); f.add(new JLabel(\"Password\")); f.add(p); f.add(b);\n        b.addActionListener(e -> {\n            boolean ok = u.getText().equals(\"admin\") && new String(p.getPassword()).equals(\"1234\");\n            JOptionPane.showMessageDialog(f, ok ? \"Login Successful\" : \"Invalid Credentials\");\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P26.java"
+    },
+    {
+      "id": 27,
+      "question": "Swing - Student Registration Form",
+      "answer": "Demonstrates Swing - Student Registration Form using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P27 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Registration\"); f.setLayout(new FlowLayout());\n        JTextField n = new JTextField(12), em = new JTextField(12);\n        JComboBox<String> c = new JComboBox<>(new String[]{\"FYCS\", \"SYCS\", \"TYCS\"});\n        JRadioButton m = new JRadioButton(\"Male\", true), fm = new JRadioButton(\"Female\");\n        ButtonGroup g = new ButtonGroup(); g.add(m); g.add(fm);\n        JButton b = new JButton(\"Register\");\n        f.add(new JLabel(\"Name\")); f.add(n); f.add(new JLabel(\"Email\")); f.add(em);\n        f.add(new JLabel(\"Class\")); f.add(c); f.add(m); f.add(fm); f.add(b);\n        b.addActionListener(e -> JOptionPane.showMessageDialog(f, n.getText() + \" registered in \"\n            + c.getSelectedItem() + \" (\" + (m.isSelected() ? \"Male\" : \"Female\") + \")\"));\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P27.java"
+    },
+    {
+      "id": 28,
+      "question": "Swing - Feedback Form",
+      "answer": "Demonstrates Swing - Feedback Form using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P28 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Feedback\"); f.setLayout(new FlowLayout());\n        JTextField n = new JTextField(14); JTextArea t = new JTextArea(4, 14);\n        JRadioButton g1 = new JRadioButton(\"Good\", true), g2 = new JRadioButton(\"Average\"),\n                     g3 = new JRadioButton(\"Poor\");\n        ButtonGroup g = new ButtonGroup(); g.add(g1); g.add(g2); g.add(g3);\n        JButton b = new JButton(\"Submit\");\n        f.add(new JLabel(\"Name\")); f.add(n); f.add(new JLabel(\"Comments\")); f.add(new JScrollPane(t));\n        f.add(g1); f.add(g2); f.add(g3); f.add(b);\n        b.addActionListener(e -> JOptionPane.showMessageDialog(f, \"Thank you \" + n.getText()\n            + \"! Rating: \" + (g1.isSelected() ? \"Good\" : g2.isSelected() ? \"Average\" : \"Poor\")));\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P28.java"
+    },
+    {
+      "id": 29,
+      "question": "Swing - Marks Calculator",
+      "answer": "Demonstrates Swing - Marks Calculator using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P29 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Marks Calculator\"); f.setLayout(new FlowLayout());\n        JTextField m1 = new JTextField(8), m2 = new JTextField(8), m3 = new JTextField(8);\n        JButton b = new JButton(\"Calculate\"); JLabel r = new JLabel(\"Total / Percentage\");\n        f.add(new JLabel(\"Sub 1\")); f.add(m1); f.add(new JLabel(\"Sub 2\")); f.add(m2);\n        f.add(new JLabel(\"Sub 3\")); f.add(m3); f.add(b); f.add(r);\n        b.addActionListener(e -> {\n            try {\n                double t = Double.parseDouble(m1.getText()) + Double.parseDouble(m2.getText())\n                         + Double.parseDouble(m3.getText());\n                r.setText(\"Total: \" + t + \" Percentage: \" + String.format(\"%.2f\", t / 3) + \"%\");\n            } catch (Exception ex) { r.setText(\"Enter valid marks\"); }\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P29.java"
+    },
+    {
+      "id": 30,
+      "question": "Swing - Simple Interest Calculator",
+      "answer": "Demonstrates Swing - Simple Interest Calculator using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P30 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Simple Interest\"); f.setLayout(new FlowLayout());\n        JTextField p = new JTextField(8), r = new JTextField(8), t = new JTextField(8);\n        JButton b = new JButton(\"Calculate\"); JLabel out = new JLabel(\"SI = \");\n        f.add(new JLabel(\"Principal\")); f.add(p); f.add(new JLabel(\"Rate %\")); f.add(r);\n        f.add(new JLabel(\"Time (yrs)\")); f.add(t); f.add(b); f.add(out);\n        b.addActionListener(e -> {\n            try {\n                double si = Double.parseDouble(p.getText()) * Double.parseDouble(r.getText())\n                          * Double.parseDouble(t.getText()) / 100;\n                out.setText(\"SI = \" + si);\n            } catch (Exception ex) { out.setText(\"Invalid input\"); }\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P30.java"
+    },
+    {
+      "id": 31,
+      "question": "Swing - Celsius to Fahrenheit",
+      "answer": "Demonstrates Swing - Celsius to Fahrenheit using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P31 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Temperature Converter\"); f.setLayout(new FlowLayout());\n        JTextField c = new JTextField(8); JButton b = new JButton(\"Convert\"); JLabel r = new JLabel(\"Fahrenheit: \");\n        f.add(new JLabel(\"Celsius\")); f.add(c); f.add(b); f.add(r);\n        b.addActionListener(e -> {\n            try { r.setText(\"Fahrenheit: \" + (Double.parseDouble(c.getText()) * 9 / 5 + 32)); }\n            catch (Exception ex) { r.setText(\"Invalid input\"); }\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P31.java"
+    },
+    {
+      "id": 32,
+      "question": "Swing - Even/Odd Checker",
+      "answer": "Demonstrates Swing - Even/Odd Checker using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P32 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Even/Odd\"); f.setLayout(new FlowLayout());\n        JTextField t = new JTextField(8); JButton b = new JButton(\"Check\"); JLabel r = new JLabel(\"Result\");\n        f.add(new JLabel(\"Number\")); f.add(t); f.add(b); f.add(r);\n        b.addActionListener(e -> {\n            try { int n = Integer.parseInt(t.getText()); r.setText(n % 2 == 0 ? \"Even\" : \"Odd\"); }\n            catch (Exception ex) { r.setText(\"Invalid input\"); }\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P32.java"
+    },
+    {
+      "id": 33,
+      "question": "Swing - Positive/Negative/Zero Checker",
+      "answer": "Demonstrates Swing - Positive/Negative/Zero Checker using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P33 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Number Checker\"); f.setLayout(new FlowLayout());\n        JTextField t = new JTextField(8); JButton b = new JButton(\"Check\"); JLabel r = new JLabel(\"Result\");\n        f.add(new JLabel(\"Number\")); f.add(t); f.add(b); f.add(r);\n        b.addActionListener(e -> {\n            try {\n                double n = Double.parseDouble(t.getText());\n                r.setText(n > 0 ? \"Positive\" : n < 0 ? \"Negative\" : \"Zero\");\n            } catch (Exception ex) { r.setText(\"Invalid input\"); }\n        });\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P33.java"
+    },
+    {
+      "id": 34,
+      "question": "Swing - ComboBox Course Selection",
+      "answer": "Demonstrates Swing - ComboBox Course Selection using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P34 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Course Selection\"); f.setLayout(new FlowLayout());\n        JComboBox<String> c = new JComboBox<>(new String[]{\"BSc CS\", \"BSc IT\", \"BCom\", \"BMS\"});\n        JButton b = new JButton(\"Show\"); JLabel r = new JLabel(\"Selected: \");\n        f.add(new JLabel(\"Course\")); f.add(c); f.add(b); f.add(r);\n        b.addActionListener(e -> r.setText(\"Selected: \" + c.getSelectedItem()));\n        f.setSize(300, 260); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P34.java"
+    },
+    {
+      "id": 35,
+      "question": "Swing - Student Record Form with JTextArea",
+      "answer": "Demonstrates Swing - Student Record Form with JTextArea using the Java code provided in the practical.",
+      "code": "import javax.swing.*; import java.awt.*;\npublic class P35 {\n    public static void main(String[] x) {\n        JFrame f = new JFrame(\"Student Record\"); f.setLayout(new FlowLayout());\n        JTextField roll = new JTextField(10), name = new JTextField(10),\n                   cls = new JTextField(10), marks = new JTextField(10);\n        JTextArea out = new JTextArea(6, 22); out.setEditable(false);\n        JButton b = new JButton(\"Add Record\");\n        f.add(new JLabel(\"Roll No\")); f.add(roll); f.add(new JLabel(\"Name\")); f.add(name);\n        f.add(new JLabel(\"Class\")); f.add(cls); f.add(new JLabel(\"Marks\")); f.add(marks);\n        f.add(b); f.add(new JScrollPane(out));\n        b.addActionListener(e -> {\n            out.append(roll.getText() + \" | \" + name.getText() + \" | \" + cls.getText()\n                       + \" | \" + marks.getText() + \"\\n\");\n            roll.setText(\"\"); name.setText(\"\"); cls.setText(\"\"); marks.setText(\"\");\n        });\n        f.setSize(320, 380); f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); f.setVisible(true);\n    }\n}",
+      "filename": "P35.java"
+    }
+  ]
+}

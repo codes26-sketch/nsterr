@@ -44,7 +44,8 @@ export function endpoint(handler) {
     for (const [name, values] of Object.entries(result.multiValueHeaders || {})) {
       for (const value of values) headers.append(name, value);
     }
-    return new Response(result.body, { status: result.statusCode, headers });
+    const responseBody = result.isBase64Encoded ? Buffer.from(result.body, 'base64') : result.body;
+    return new Response(responseBody, { status: result.statusCode, headers });
   };
 }
 
@@ -244,4 +245,30 @@ export async function consumeRateLimit(event, purpose, limit = 10, windowSeconds
     method: 'POST', body: { p_key: key, p_limit: limit, p_window_seconds: windowSeconds }
   });
   if (result !== true) throw new HttpError(429, 'Too many tries. Wait a few minutes, then try again.', 'RATE_LIMITED');
+}
+
+export async function supabaseStorageObject(path, { method: httpMethod = 'GET', body, contentType, upsert = false } = {}) {
+  const { base, secret } = config();
+  const headers = {
+    apikey: secret,
+    Authorization: `Bearer ${secret}`,
+    Accept: 'application/pdf'
+  };
+  if (contentType) headers['Content-Type'] = contentType;
+  if (httpMethod === 'POST') headers['x-upsert'] = upsert ? 'true' : 'false';
+  let response;
+  try {
+    response = await fetch(`${base}/storage/v1/object/${path}`, {
+      method: httpMethod, headers, body, signal: AbortSignal.timeout(30_000)
+    });
+  } catch {
+    throw new HttpError(503, 'NSTER could not reach secure file storage. Please try again shortly.', 'FILE_STORAGE_UNAVAILABLE');
+  }
+  if (!response.ok) {
+    if (response.status === 404) throw new HttpError(404, 'This PDF attachment is unavailable.', 'PDF_NOT_FOUND');
+    if (response.status === 413) throw new HttpError(413, 'PDF files can be up to 4 MB.', 'PDF_TOO_LARGE');
+    throw new HttpError(503, 'NSTER could not save or open this PDF right now. Please try again shortly.', 'FILE_STORAGE_UNAVAILABLE');
+  }
+  if (httpMethod !== 'GET') await response.arrayBuffer();
+  return response;
 }

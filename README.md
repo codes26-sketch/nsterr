@@ -10,8 +10,8 @@ Deploy the **contents of this `outputs` folder as the site repository root** and
 
 1. Create a Supabase project.
 2. Open **SQL Editor**, paste in [`supabase/schema.sql`](supabase/schema.sql), and run it.
-3. Run [`supabase/setup-pdf-storage.sql`](supabase/setup-pdf-storage.sql) once to create the private PDF bucket.
-3. From **Project Settings → API Keys** (or the project Connect dialog), copy the project URL and a server-side **Secret key** (`sb_secret_…`). Keep the secret key private.
+3. Run [`setup-pdf-storage.sql`](setup-pdf-storage.sql) once to create the private PDF bucket.
+4. From **Project Settings → API Keys** (or the project Connect dialog), copy the project URL and a server-side **Secret key** (`sb_secret_…`). Keep the secret key private.
 
 ### 2. Add Netlify environment variables
 
@@ -60,9 +60,15 @@ Select **Edit** beside a published question to change its question, answer, file
 
 ## PDF answers
 
-In the owner question form, choose an optional PDF before publishing or editing an answer. Files are limited to 4 MB. A new PDF replaces the current attachment; saving an edit without selecting a file keeps the existing one. Visitors see a **View attached PDF** link under the answer. The link streams the file through an authenticated Netlify Function, so visitors must have opened NSTER with the visitor password. PDF bytes are held in the private `nster-answer-pdfs` Supabase Storage bucket; filenames and storage keys are kept with the Netlify Database question row. The Netlify database migration adds the attachment fields automatically on deploy. Run `supabase/setup-pdf-storage.sql` once in the Supabase SQL Editor before using PDF uploads. No new Netlify environment variables are required.
+In the owner question form, choose an optional PDF before publishing or editing an answer. Files are limited to 4 MB. A new PDF replaces the current attachment; saving an edit without selecting a file keeps the existing one. Visitors see a **View attached PDF** link under the answer. The link streams the file through an authenticated Netlify Function, so visitors must have opened NSTER with the visitor password. PDF bytes are held in the private `nster-answer-pdfs` Supabase Storage bucket; filenames and storage keys are kept with the Netlify Database question row. The Netlify database migration adds the attachment fields automatically on deploy. Run `setup-pdf-storage.sql` once in the Supabase SQL Editor before using PDF uploads. No new Netlify environment variables are required.
 
 The light palette and lime accents are retained. Dark mode uses pure-black page, card, input, dialog, and code backgrounds, with borders defining the layout. Theme selection remains local to each browser.
+
+## Troubleshooting deployment
+
+If function packaging fails with `Could not resolve "../java_practicals_1_to_35.json"`, make sure `java_practicals_1_to_35.json` is committed at the repository root alongside `package.json`. The questions function imports this file directly; the `included_files` setting cannot replace a missing source file. Keep the file even after the practicals have been imported into the database.
+
+After restoring the file, retry the production deployment from the `main` branch in Netlify. A successful preview deployment does not publish the production site. Use the normal production deployment so the database migrations, including the PDF attachment columns, are applied before the updated functions are published.
 
 ## Local preview
 
@@ -75,4 +81,3 @@ The static page alone is not a working site because `/api/*` routes are Netlify 
 - Passwords are salted and hashed on the server. The Supabase secret key, setup key, and session signing secret must stay in server-side environment variables.
 - Login attempts are rate-limited by a keyed hash of the request IP. The raw IP is not stored in the database.
 - Theme preference is saved in the visitor's browser. Q&A and import history are shared through Netlify Database; existing accounts and access settings remain in Supabase.
-

@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f6f7ee">
   <meta name="description" content="NSTER — a calm, password-protected home for useful answers.">
   <title>NSTER</title>
-  <link rel="stylesheet" href="/styles.css?v=bulk-upload-4">
-  <script src="/app.js?v=bulk-upload-4" defer></script>
+  <link rel="stylesheet" href="/styles.css?v=pdf-answer-1">
+  <script src="/app.js?v=pdf-answer-1" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -62,6 +62,7 @@
             <div><label for="answerInput">Answer</label><textarea class="field" id="answerInput" minlength="2" maxlength="4000" placeholder="Write a clear, helpful answer…" required></textarea></div>
             <div><label for="codeFilename">Filename <span class="optional">(optional)</span></label><input class="field" id="codeFilename" maxlength="128" placeholder="e.g. P1.java"></div>
             <div class="split-fields"><div><label for="codeLanguage">Code language <span class="optional">(optional)</span></label><input class="field" id="codeLanguage" maxlength="24" placeholder="JavaScript"></div><div><label for="codeInput">Code snippet <span class="optional">(optional)</span></label><textarea class="field code-input" id="codeInput" maxlength="3000" rows="5" placeholder="Paste code here"></textarea></div></div>
+            <div><label for="answerPdf">PDF answer <span class="optional">(optional)</span></label><input class="field pdf-file-input" id="answerPdf" type="file" accept=".pdf,application/pdf" aria-describedby="pdfUploadHelp"><p class="form-note" id="pdfUploadHelp">Attach one PDF up to 4 MB. Visitors can open it from this answer. Selecting a new PDF replaces the current attachment.</p><p class="form-note current-pdf-note" id="currentPdfNote" hidden></p></div>
             <div class="form-actions"><button class="primary-btn" type="submit" id="questionSubmit">Publish question <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="subtle-btn" type="button" id="cancelEdit" hidden>Cancel editing</button></div>
             <p class="hint" id="questionFormHint" role="status"></p>
           </form>

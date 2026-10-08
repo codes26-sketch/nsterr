@@ -7,7 +7,7 @@ import { editableQuestion, importExistingQuestions, importRepositoryQuestions } 
 import { questionRecords, QuestionValidationError, validateQuestion } from '../../lib/question-data.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const fields = { id: questions.id, question: questions.question, answer: questions.answer, code: questions.code, language: questions.language, filename: questions.filename, created_at: questions.created_at };
+const fields = { id: questions.id, question: questions.question, answer: questions.answer, code: questions.code, language: questions.language, filename: questions.filename, pdf_filename: questions.pdf_filename, pdf_size: questions.pdf_size, created_at: questions.created_at };
 
 function validated(callback) {
   try { return callback(); }
