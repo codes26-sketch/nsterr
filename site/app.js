@@ -24,6 +24,15 @@
   let preparingImport = false;
   let uploadingQuestions = false;
 
+  async function encodePdf(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length)));
+    }
+    return btoa(binary);
+  }
+
   const loadingCards = '<div class="loading-cards" role="status" aria-label="Loading questions"><div></div><div></div><div></div></div>';
 
   class ApiError extends Error {
@@ -188,7 +197,7 @@
     $('#visitorQaList').innerHTML = filtered.length ? filtered.map((item, index) => `
       <article class="qa-card ${!search && index === 0 ? 'open' : ''}" data-id="${escapeHtml(item.id)}">
         <button class="qa-question" id="question-${escapeHtml(item.id)}" type="button" aria-controls="answer-${escapeHtml(item.id)}" aria-expanded="${!search && index === 0 ? 'true' : 'false'}"><span>${escapeHtml(item.question)}</span><span class="chevron">${icons.chevron}</span></button>
-        <div class="answer-wrap" id="answer-${escapeHtml(item.id)}" role="region" aria-labelledby="question-${escapeHtml(item.id)}" ${!search && index === 0 ? '' : 'inert'}><div class="answer-inner"><div class="answer">${escapeHtml(item.answer)}${item.code ? `<div class="codebox"><div class="code-top"><span>${escapeHtml(item.filename || item.language || 'Code')}</span><button type="button" class="copy-btn" data-copy="${escapeHtml(item.id)}">${icons.copy} Copy code</button></div><pre><code>${escapeHtml(item.code)}</code></pre></div>` : ''}</div></div></div>
+        <div class="answer-wrap" id="answer-${escapeHtml(item.id)}" role="region" aria-labelledby="question-${escapeHtml(item.id)}" ${!search && index === 0 ? '' : 'inert'}><div class="answer-inner"><div class="answer">${escapeHtml(item.answer)}${item.pdf_filename ? `<div class="pdf-attachment"><a class="pdf-link" href="/api/question-pdf?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20V5a1.5 1.5 0 0 1 1-1.5Z"/><path d="M14 3.5V8h4M8.5 13h7M8.5 16h7"/></svg><span>View attached PDF<small>${escapeHtml(item.pdf_filename)}</small></span></a></div>` : ''}${item.code ? `<div class="codebox"><div class="code-top"><span>${escapeHtml(item.filename || item.language || 'Code')}</span><button type="button" class="copy-btn" data-copy="${escapeHtml(item.id)}">${icons.copy} Copy code</button></div><pre><code>${escapeHtml(item.code)}</code></pre></div>` : ''}</div></div></div>
       </article>`).join('') : `<div class="empty-state">${search ? 'No answers match your search.<br>Try a different word or clear the search.' : 'No questions published yet.<br>Your NSTER owner can add or import answers.'}</div>`;
   }
   async function loadAdminQuestions() {
@@ -213,6 +222,8 @@
     $('#cancelEdit').hidden = true;
     $('#questionFormHint').textContent = '';
     $('#questionFormHint').classList.remove('error');
+    $('#currentPdfNote').hidden = true;
+    $('#currentPdfNote').textContent = '';
   }
   function editQuestion(id) {
     const item = questions.find(row => row.id === id);
@@ -229,6 +240,12 @@
     $('#cancelEdit').hidden = false;
     $('#questionFormHint').textContent = '';
     $('#questionFormCard').classList.add('is-editing');
+    $('#currentPdfNote').hidden = true;
+    $('#currentPdfNote').textContent = '';
+    if (item.pdf_filename) {
+      $('#currentPdfNote').innerHTML = 'Current PDF: <a href="/api/question-pdf?id=' + encodeURIComponent(item.id) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(item.pdf_filename) + '</a>. Choose another PDF to replace it.';
+      $('#currentPdfNote').hidden = false;
+    }
     $('#questionFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     $('#questionInput').focus({ preventScroll: true });
   }
@@ -282,11 +299,35 @@
     const wasEditing = Boolean(editingId);
     button.textContent = wasEditing ? 'Saving changes…' : 'Publishing…';
     try {
-      await api(editingId ? `/api/questions?id=${encodeURIComponent(editingId)}` : '/api/questions', { method: editingId ? 'PATCH' : 'POST', body: {
+      const pdfFile = $('#answerPdf').files?.[0] || null;
+      if (pdfFile) {
+        if (pdfFile.size > 4 * 1024 * 1024) throw new Error('PDF files can be up to 4 MB.');
+        if (!pdfFile.name.toLowerCase().endsWith('.pdf') || pdfFile.name.length > 128) throw new Error('Choose a PDF file with a filename up to 128 characters.');
+      }
+      const saved = await api(editingId ? `/api/questions?id=${encodeURIComponent(editingId)}` : '/api/questions', { method: editingId ? 'PATCH' : 'POST', body: {
         question: $('#questionInput').value.trim(), answer: $('#answerInput').value.trim(),
         language: $('#codeLanguage').value.trim(), code: $('#codeInput').value, filename: $('#codeFilename').value.trim()
       }});
-      resetQuestionEditor(); showToast(wasEditing ? 'Question and answer updated.' : 'Your question is published on NSTER.');
+      if (pdfFile) {
+        button.textContent = 'Uploading PDF…';
+        try {
+          await api('/api/question-pdf?id=' + encodeURIComponent(saved.question.id), {
+            method: 'POST', body: { filename: pdfFile.name, data: await encodePdf(pdfFile) }
+          });
+        } catch (uploadError) {
+          editingId = saved.question.id;
+          $('#questionFormTitle').textContent = 'Question saved · PDF needs a retry';
+          $('#questionFormCopy').textContent = 'Your answer is saved. Choose the PDF again and select Save changes to retry.';
+          $('#questionSubmit').textContent = 'Retry PDF upload';
+          $('#cancelEdit').hidden = false;
+          $('#questionFormCard').classList.add('is-editing');
+          await loadAdminQuestions();
+          $('#questionFormHint').textContent = 'The question is saved, but the PDF could not be attached. ' + uploadError.message + ' Choose the PDF again and save changes to retry.';
+          $('#questionFormHint').classList.add('error');
+          return;
+        }
+      }
+      resetQuestionEditor(); showToast(pdfFile ? (wasEditing ? 'Question and PDF updated.' : 'Question and PDF published on NSTER.') : (wasEditing ? 'Question and answer updated.' : 'Your question is published on NSTER.'));
       if (owner) await loadAdminQuestions();
     } catch (error) { $('#questionFormHint').textContent = error.message; $('#questionFormHint').classList.add('error'); }
     finally { button.disabled = false; savingQuestion = false; $('#cancelEdit').disabled = false; button.textContent = editingId ? 'Save changes' : 'Publish question'; }
